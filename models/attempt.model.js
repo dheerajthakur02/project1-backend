@@ -29,6 +29,17 @@ const attemptSchema = new mongoose.Schema({
   analysis: {
     type: mongoose.Schema.Types.Mixed,
   },
+  aiFeedback: {
+    type: String, 
+  },
+  wordAnalysis: {
+    type: [
+      {
+        word: String,
+        status: String, 
+      }
+    ]
+  },
   date: {
     type: Date,
     default: Date.now,
