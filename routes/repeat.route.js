@@ -1,0 +1,26 @@
+import express from "express";
+import { upload } from "../middlewares/upload.js";
+import {
+  addQuestion,
+  updateQuestion,
+  deleteQuestion,
+  getQuestionsWithAttempts,
+} from "../controllers/repeatSentence.controller.js";
+import { authorize } from "../middlewares/authMiddleware.js";
+import { createRepeatAttempt } from "../controllers/attemptRepeat.controller.js";
+
+const router = express.Router();
+
+// router.use(authorize());
+router.post("/add", upload.single("audio"), addQuestion);
+router.get("/get/:userId", getQuestionsWithAttempts);
+router.put("/:id", upload.single("audio"), updateQuestion);
+router.delete("/:id", deleteQuestion);
+
+//attempt routes
+router.post("/submit", upload.single("audio"), createRepeatAttempt);
+
+export default router;
+
+
+

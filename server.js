@@ -37,10 +37,18 @@ app.use(json());
 app.use(cookieParser());
 connectDB();
 
+// Connect Cloudinary
+connectCloudinary();
 //api
 app.use("/api/auth", authRoutes);
 app.use("/api/read-aloud", readAloudRoutes);
 app.use("/api/attempts", attemptRoutes);
+
+import repeatRoutes from "./routes/repeat.route.js";
+import imageRoutes from "./routes/imageRoutes.js"
+import { connectCloudinary } from "./config/cloudinary.js";
+app.use("/api/repeat-sentence", repeatRoutes);
+app.use("/api/image", imageRoutes);
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
