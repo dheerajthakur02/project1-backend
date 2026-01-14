@@ -6,6 +6,11 @@ const attemptSchema = new mongoose.Schema({
     ref: "readaloud",
     required: true,
   },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
   transcript: {
     type: String,
     required: true,

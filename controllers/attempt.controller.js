@@ -1,10 +1,14 @@
 import Attempt from "../models/attempt.model.js";
 import ReadAloud from "../models/readAloud.model.js";
 import stringSimilarity from "string-similarity";
+import mongoose from "mongoose";
+
+const textToFixed = (num) => parseFloat(num.toFixed(1));
 
 export const createAttempt = async (req, res) => {
   try {
     const { paragraphId, transcript } = req.body;
+    const userId = req.user?.id;
 
     if (!paragraphId || transcript === undefined) {
       return res.status(400).json({
@@ -13,8 +17,22 @@ export const createAttempt = async (req, res) => {
       });
     }
 
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "User not authenticated" });
+    }
+
     // Fetch the original paragraph
-    const paragraph = await ReadAloud.findById(paragraphId);
+    let paragraph;
+    if (mongoose.Types.ObjectId.isValid(paragraphId)) {
+      paragraph = await ReadAloud.findById(paragraphId);
+    }
+
+    if (!paragraph) {
+      paragraph = await ReadAloud.findOne({ id: paragraphId });
+    }
+
     if (!paragraph) {
       return res.status(404).json({
         success: false,
@@ -23,82 +41,111 @@ export const createAttempt = async (req, res) => {
     }
 
     const originalText = paragraph.text;
-    
+
     // normalization helper
-    const cleanText = (text) => text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").replace(/\s{2,}/g, " ").trim();
-    
+    const cleanText = (text) =>
+      String(text || "")
+        .toLowerCase()
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+
     const originalClean = cleanText(originalText);
     const transcriptClean = cleanText(transcript);
-    
-    const originalWords = originalClean.split(" ");
-    const transcriptWords = transcriptClean.split(" ");
+
+    const originalWords = originalClean ? originalClean.split(" ") : [];
+    const transcriptWords = transcriptClean ? transcriptClean.split(" ") : [];
 
     // --- Enhanced Analysis Logic ---
 
-    // 1. Word Analysis (Simple alignment)
-    const wordAnalysis = originalWords.map(word => {
-      // Check if word exists in transcript (simplistic check)
-      // For more advanced, we would need sequence alignment (like Needleman-Wunsch) but this suffices for "simulated"
-      const found = transcriptWords.includes(word);
-      return {
-        word: word,
-        status: found ? 'good' : 'bad', // defaulting to binary for now, 'average' could be fuzzy match
-        originalWord: word // keep case if we had it, but we cleaned it. using cleaned for now.
-      };
-    });
-
-    // Re-map to original text casing for display if possible, or just use originalWords as reference
-    // Better: Map against the original text split by space
-    const originalTextSplit = originalText.split(/\s+/);
+    // Better word-by-word analysis (with fuzzy match)
+    const originalTextSplit = String(originalText || "").split(/\s+/);
     const detailedWordAnalysis = originalTextSplit.map((origWord) => {
       const cleanOrig = cleanText(origWord);
-      // specific check for this word in transcript
-      const accuracy = stringSimilarity.findBestMatch(cleanOrig, transcriptWords);
-      let status = 'bad';
-      if (accuracy.bestMatch.rating > 0.8) status = 'good';
-      else if (accuracy.bestMatch.rating > 0.5) status = 'average';
-      
+
+      // handle empty word cases safely
+      if (!cleanOrig) {
+        return { word: origWord, status: "average" };
+      }
+
+      const accuracy = stringSimilarity.findBestMatch(
+        cleanOrig,
+        transcriptWords.length ? transcriptWords : [""]
+      );
+
+      let status = "bad";
+      if (accuracy.bestMatch.rating > 0.8) status = "good";
+      else if (accuracy.bestMatch.rating > 0.5) status = "average";
+
       return {
         word: origWord,
-        status: status
+        status,
       };
     });
 
-
     // 2. Statistics
-    const goodCount = detailedWordAnalysis.filter(w => w.status === 'good').length;
-    const averageCount = detailedWordAnalysis.filter(w => w.status === 'average').length;
-    
-    // Recalculate basic scores based on this better analysis
-    const contentScore = Math.min(((goodCount + (averageCount * 0.5)) / originalWords.length) * 10, 10); // Max 10 (actually 5 in PTE usually, adjusting to 0-5 scale later if needed, but sticking to provided 0-10 or 0-30 logic)
-    
-    // Pronunciation (using string similarity as base)
-    const similarity = stringSimilarity.compareTwoStrings(originalClean, transcriptClean);
-    const pronunciationScore = Math.min(similarity * 10, 10);
+    const goodCount = detailedWordAnalysis.filter(
+      (w) => w.status === "good"
+    ).length;
+    const averageCount = detailedWordAnalysis.filter(
+      (w) => w.status === "average"
+    ).length;
 
-    // Fluency (Length + Pause penalty simulation)
-    // If transcript is too short => bad fluency
-    const lengthRatio = Math.min(transcriptWords.length / originalWords.length, 1.5); // Cap at 1.5
-    // Optimal is 1.0. 
-    const fluencyPenalty = Math.abs(1 - lengthRatio) * 10;
-    const fluencyScore = Math.max(10 - fluencyPenalty, 0);
+    // ✅ CONTENT: MAX 5
+    const contentScore = Math.min(
+      ((goodCount + averageCount * 0.5) / Math.max(originalWords.length, 1)) *
+        5,
+      5
+    );
 
-    const totalScore = Math.min(contentScore + pronunciationScore + fluencyScore, 30); // Max 30
+    // ✅ PRONUNCIATION: MAX 5 (based on similarity)
+    const similarity = stringSimilarity.compareTwoStrings(
+      originalClean,
+      transcriptClean
+    );
+    const pronunciationScore = Math.min(similarity * 5, 5);
 
-    // 3. AI Feedback Generation
+    // ✅ ORAL FLUENCY: MAX 5 (length ratio penalty)
+    const lengthRatio = Math.min(
+      transcriptWords.length / Math.max(originalWords.length, 1),
+      1.5
+    );
+    const fluencyPenalty = Math.abs(1 - lengthRatio) * 5;
+    const fluencyScore = Math.max(5 - fluencyPenalty, 0);
+
+    // ✅ TOTAL: MAX 15
+    const totalScore = Math.min(
+      contentScore + pronunciationScore + fluencyScore,
+      15
+    );
+
+    // 3. AI Feedback Generation (updated for 15 max)
     let feedback = [];
-    if (totalScore > 25) feedback.push("Excellent work! Your reading was clear and fluent.");
-    else if (totalScore > 15) feedback.push("Good effort. Keep practicing to improve flow and clarity.");
-    else feedback.push("You might need more practice. Focus on saying each word clearly.");
+    if (totalScore > 12.5)
+      feedback.push("Excellent work! Your reading was clear and fluent.");
+    else if (totalScore > 7.5)
+      feedback.push(
+        "Good effort. Keep practicing to improve flow and clarity."
+      );
+    else
+      feedback.push(
+        "You might need more practice. Focus on saying each word clearly."
+      );
 
-    if (fluencyScore < 6) feedback.push("Try to speak at a steady pace without long pauses.");
-    if (pronunciationScore < 6) feedback.push("Some words were hard to recognize. Check the red words below.");
-    if (transcriptWords.length < originalWords.length * 0.5) feedback.push("It seems you missed a significant portion of the text.");
+    if (fluencyScore < 3)
+      feedback.push("Try to speak at a steady pace without long pauses.");
+    if (pronunciationScore < 3)
+      feedback.push(
+        "Some words were hard to recognize. Check the red words below."
+      );
+    if (transcriptWords.length < originalWords.length * 0.5)
+      feedback.push("It seems you missed a significant portion of the text.");
 
     const aiFeedbackString = feedback.join(" ");
 
     const attempt = await Attempt.create({
-      paragraphId,
+      paragraphId: paragraph._id,
+      userId,
       transcript,
       score: textToFixed(totalScore),
       fluency: textToFixed(fluencyScore),
@@ -107,17 +154,16 @@ export const createAttempt = async (req, res) => {
       analysis: {
         similarity: similarity,
         matchedWords: goodCount,
-        totalWords: originalWords.length
+        totalWords: originalWords.length,
       },
       aiFeedback: aiFeedbackString,
-      wordAnalysis: detailedWordAnalysis
+      wordAnalysis: detailedWordAnalysis,
     });
 
     res.status(201).json({
       success: true,
       data: attempt,
     });
-
   } catch (error) {
     console.error("Error creating attempt:", error);
     res.status(500).json({
@@ -127,13 +173,34 @@ export const createAttempt = async (req, res) => {
   }
 };
 
-const textToFixed = (num) => parseFloat(num.toFixed(1));
-
 export const getAttempts = async (req, res) => {
-    try {
-        const attempts = await Attempt.find().sort({ date: -1 });
-        res.status(200).json({ success: true, data: attempts });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+  try {
+    const { paragraphId } = req.query;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "User not authenticated" });
     }
+
+    const query = { userId };
+
+    if (paragraphId) {
+      let pId = paragraphId;
+      if (!mongoose.Types.ObjectId.isValid(paragraphId)) {
+        const p = await ReadAloud.findOne({ id: paragraphId });
+        if (p) pId = p._id;
+      }
+      query.paragraphId = pId;
+    }
+
+    const attempts = await Attempt.find(query)
+      .sort({ date: -1 })
+      .populate("userId", "name email");
+
+    res.status(200).json({ success: true, data: attempts });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
