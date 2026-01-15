@@ -146,9 +146,9 @@ export const updateQuestion = async (req, res) => {
     const { title, prepareTime, answerTime, answer, difficulty } = req.body;
 
     if (req.file) {
-    //   await cloudinary.uploader.destroy(question.cloudinaryId, {
-    //     resource_type: "video",
-    //   });
+      await cloudinary.uploader.destroy(question.cloudinaryId, {
+        resource_type: "video",
+      });
 
       const uploaded = await cloudinary.uploader.upload(req.file.path, {
         resource_type: "video",

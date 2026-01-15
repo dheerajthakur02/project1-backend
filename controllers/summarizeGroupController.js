@@ -147,9 +147,9 @@ export const updateQuestion = async (req, res) => {
     // If new audio uploaded
     if (req.file) {
     //   // Delete old audio
-    //   await cloudinary.uploader.destroy(question.cloudinaryId, {
-    //     resource_type: "video"
-    //   });
+      await cloudinary.uploader.destroy(question.cloudinaryId, {
+        resource_type: "video"
+      });
 
       // Upload new audio
       const uploaded = await cloudinary.uploader.upload(req.file.path, {
