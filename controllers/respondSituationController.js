@@ -116,7 +116,9 @@ export const updateRespondSituationQuestion = async (req, res) => {
 export const getRespondSituationQuestionsWithAttempts = async (req, res) => {
   try {
     const { userId } = req.params;
-    if (!userId) return res.status(400).json({ message: "userId is required" });
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
+    }
 
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
@@ -126,7 +128,16 @@ export const getRespondSituationQuestionsWithAttempts = async (req, res) => {
           from: "respondsituationattempts",
           let: { qId: "$_id" },
           pipeline: [
-            { $match: { $expr: { $and: [{ $eq: ["$questionId", "$$qId"] }, { $eq: ["$userId", userObjectId] }] } } },
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$questionId", "$$qId"] },
+                    { $eq: ["$userId", userObjectId] }
+                  ]
+                }
+              }
+            },
             { $count: "count" }
           ],
           as: "attemptCountArr"
@@ -137,18 +148,45 @@ export const getRespondSituationQuestionsWithAttempts = async (req, res) => {
           from: "respondsituationattempts",
           let: { qId: "$_id" },
           pipeline: [
-            { $match: { $expr: { $and: [{ $eq: ["$questionId", "$$qId"] }, { $eq: ["$userId", userObjectId] }] } } },
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$questionId", "$$qId"] },
+                    { $eq: ["$userId", userObjectId] }
+                  ]
+                }
+              }
+            },
             { $sort: { createdAt: -1 } },
             { $limit: 10 },
-            { $project: { score: 1, transcript: 1, createdAt: 1, studentAudio: 1, wordAnalysis: 1 } }
+            {
+              $project: {
+                score: 1,
+                content: 1,
+                fluency: 1,
+                pronunciation: 1,
+                transcript: 1,
+                createdAt: 1,
+                studentAudio: 1,
+                wordAnalysis: 1
+              }
+            }
           ],
           as: "lastAttempts"
         }
       },
       {
         $addFields: {
-          attemptCount: { $ifNull: [{ $arrayElemAt: ["$attemptCountArr.count", 0] }, 0] },
-          isAttempted: { $gt: [{ $ifNull: [{ $arrayElemAt: ["$attemptCountArr.count", 0] }, 0] }, 0] }
+          attemptCount: {
+            $ifNull: [{ $arrayElemAt: ["$attemptCountArr.count", 0] }, 0]
+          },
+          isAttempted: {
+            $gt: [
+              { $ifNull: [{ $arrayElemAt: ["$attemptCountArr.count", 0] }, 0] },
+              0
+            ]
+          }
         }
       },
       { $project: { attemptCountArr: 0 } }
