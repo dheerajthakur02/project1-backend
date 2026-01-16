@@ -50,7 +50,13 @@ import shortAsnwerRoutes from "./routes/shortAnswer.route.js"
 import summarizeGroupRoutes from "./routes/summarizeGroup.route.js"
 import retellRoutes from "./routes/retell.route.js"
 import respondRoutes from "./routes/respondSituation.js"
+import summarizeTextRoutes from "./routes/wriitng/summarizeTextRoutes.js"
+import essayRoutes from "./routes/wriitng/essayRoutes.js"
+
+app.use("/api/summarize-text", summarizeTextRoutes);
+app.use("/api/essay", essayRoutes); 
 import readingFIBDropdownRoutes from "./routes/readingFIBDropdown.route.js"
+
 import { connectCloudinary } from "./config/cloudinary.js";
 
 app.use("/api/repeat-sentence", repeatRoutes);
@@ -63,7 +69,9 @@ app.use("/api/reading-fib-dropdown", readingFIBDropdownRoutes)
 import readingMultiChoiceMultiAnswerRoutes from "./routes/readingMultiChoiceMultiAnswer.route.js"
 app.use("/api/reading-multi-choice-multi-answer", readingMultiChoiceMultiAnswerRoutes)
 
-
+app.use('/hello', (req, res) => {
+  res.send('Hello from the server!');
+});
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server is running on the port ${PORT}`);
