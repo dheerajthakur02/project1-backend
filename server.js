@@ -50,18 +50,25 @@ import shortAsnwerRoutes from "./routes/shortAnswer.route.js"
 import summarizeGroupRoutes from "./routes/summarizeGroup.route.js"
 import retellRoutes from "./routes/retell.route.js"
 import respondRoutes from "./routes/respondSituation.js"
+<<<<<<< HEAD
 import summarizeTextRoutes from "./routes/wriitng/summarizeTextRoutes.js"
 import essayRoutes from "./routes/wriitng/essayRoutes.js"
 
 app.use("/api/summarize-text", summarizeTextRoutes);
 app.use("/api/essay", essayRoutes); 
+=======
+import readingFIBDropdownRoutes from "./routes/readingFIBDropdown.route.js"
+>>>>>>> 73c858de01dded5e7d077930ea1fc3abfbe55ced
 import { connectCloudinary } from "./config/cloudinary.js";
+
 app.use("/api/repeat-sentence", repeatRoutes);
 app.use("/api/image", imageRoutes);
 app.use("/api/short-answer", shortAsnwerRoutes)
 app.use("/api/summarize-group", summarizeGroupRoutes)
 app.use("/api/retell-lecture", retellRoutes)
 app.use("/api/respond-situation", respondRoutes)
+app.use("/api/reading-fib-dropdown", readingFIBDropdownRoutes)
+
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
