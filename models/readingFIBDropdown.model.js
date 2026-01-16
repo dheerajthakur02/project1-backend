@@ -23,11 +23,14 @@ const readingFIBDropdownSchema = new mongoose.Schema(
       default: "Medium",
     },
     isPrediction: {
-        type: Boolean,
-        default: false,
-    }
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
 
-export const ReadingFIBDropdown = mongoose.model("ReadingFIBDropdown", readingFIBDropdownSchema);
+export const ReadingFIBDropdown = mongoose.model(
+  "ReadingFIBDropdown",
+  readingFIBDropdownSchema
+);

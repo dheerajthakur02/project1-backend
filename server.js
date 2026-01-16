@@ -60,6 +60,8 @@ app.use("/api/summarize-group", summarizeGroupRoutes)
 app.use("/api/retell-lecture", retellRoutes)
 app.use("/api/respond-situation", respondRoutes)
 app.use("/api/reading-fib-dropdown", readingFIBDropdownRoutes)
+import readingMultiChoiceMultiAnswerRoutes from "./routes/readingMultiChoiceMultiAnswer.route.js"
+app.use("/api/reading-multi-choice-multi-answer", readingMultiChoiceMultiAnswerRoutes)
 
 
 const PORT = process.env.PORT;

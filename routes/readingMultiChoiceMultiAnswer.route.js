@@ -6,16 +6,16 @@ import {
   submitAttempt,
   getAttempts,
   getAll,
-} from "../controllers/readingFIBDropdown.controller.js";
-import { authorize } from "../middlewares/authMiddleware.js"; // Assuming you have an auth middleware
+} from "../controllers/readingMultiChoiceMultiAnswer.controller.js";
+import { authorize } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 router.post("/add", addQuestion);
-router.get("/get/:userId", getQuestions); // To get list with status
+router.get("/get/:userId", getQuestions);
 router.get("/:id", getQuestionById);
 router.post("/submit", submitAttempt);
 router.get("/attempts/all", getAll);
-router.get("/attempts/:questionId", authorize(), getAttempts); // New route for attempts history
+router.get("/attempts/:questionId", authorize(), getAttempts);
 
 export default router;

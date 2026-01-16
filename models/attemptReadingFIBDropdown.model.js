@@ -15,7 +15,7 @@ const attemptReadingFIBDropdownSchema = new mongoose.Schema(
     userAnswers: [
       {
         index: { type: Number, required: true },
-        answer: { type: String, required: true },
+        answer: { type: String },
         isCorrect: { type: Boolean, required: true },
       },
     ],

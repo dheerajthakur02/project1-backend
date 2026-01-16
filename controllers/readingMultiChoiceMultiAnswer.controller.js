@@ -1,15 +1,17 @@
-import { ReadingFIBDropdown } from "../models/readingFIBDropdown.model.js";
-import { AttemptReadingFIBDropdown } from "../models/attemptReadingFIBDropdown.model.js";
+import { ReadingMultiChoiceMultiAnswer } from "../models/readingMultiChoiceMultiAnswer.model.js";
+import { AttemptReadingMultiChoiceMultiAnswer } from "../models/attemptReadingMultiChoiceMultiAnswer.model.js";
 
 // Add a new question
 export const addQuestion = async (req, res) => {
   try {
-    const { title, text, blanks, difficulty, isPrediction } = req.body;
+    const { title, text, question, options, correctOptions, difficulty, isPrediction } = req.body;
 
-    const newQuestion = new ReadingFIBDropdown({
+    const newQuestion = new ReadingMultiChoiceMultiAnswer({
       title,
       text,
-      blanks,
+      question,
+      options,
+      correctOptions,
       difficulty,
       isPrediction,
     });
@@ -18,7 +20,7 @@ export const addQuestion = async (req, res) => {
     res.status(201).json({
       success: true,
       data: newQuestion,
-      message: "Reading FIB Dropdown Question added successfully",
+      message: "Reading Multi Choice Question added successfully",
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -29,13 +31,13 @@ export const addQuestion = async (req, res) => {
 export const getQuestions = async (req, res) => {
   try {
     const { userId } = req.params;
-    const questions = await ReadingFIBDropdown.find().lean();
+    const questions = await ReadingMultiChoiceMultiAnswer.find().lean();
 
     // Fetch user attempts to add status
     const questionsWithStatus = await Promise.all(
       questions.map(async (question) => {
         if (userId) {
-          const attempts = await AttemptReadingFIBDropdown.find({
+          const attempts = await AttemptReadingMultiChoiceMultiAnswer.find({
             userId,
             questionId: question._id,
           });
@@ -57,7 +59,7 @@ export const getQuestions = async (req, res) => {
 // Get single question by ID
 export const getQuestionById = async (req, res) => {
   try {
-    const question = await ReadingFIBDropdown.findById(req.params.id);
+    const question = await ReadingMultiChoiceMultiAnswer.findById(req.params.id);
     if (!question) {
       return res
         .status(404)
@@ -72,41 +74,37 @@ export const getQuestionById = async (req, res) => {
 // Submit an attempt
 export const submitAttempt = async (req, res) => {
   try {
-    const { userId, questionId, userAnswers } = req.body;
+    const { userId, questionId, userSelectedOptions } = req.body;
 
-    const question = await ReadingFIBDropdown.findById(questionId);
+    const question = await ReadingMultiChoiceMultiAnswer.findById(questionId);
     if (!question) {
       return res
         .status(404)
         .json({ success: false, message: "Question not found" });
     }
 
-    let score = 0;
-    const evaluatedAnswers = userAnswers.map((userAns) => {
-      // Find the correct blank
-      const correctBlank = question.blanks.find(
-        (b) => b.index === userAns.index
-      );
-      let isCorrect = false;
+    // Scoring Logic
+    // +1 for each correct response, -1 for each incorrect response. Min 0.
+    const correctOptionsSet = new Set(question.correctOptions);
+    let correctCount = 0;
+    let incorrectCount = 0;
 
-      if (correctBlank && correctBlank.correctAnswer === userAns.answer) {
-        isCorrect = true;
-        score += 1; // 1 mark for correct
+    userSelectedOptions.forEach(option => {
+      if (correctOptionsSet.has(option)) {
+        correctCount++;
+      } else {
+        incorrectCount++;
       }
-      // No negative marking
-      return {
-        index: userAns.index,
-        answer: userAns.answer,
-        isCorrect,
-      };
     });
 
-    const maxScore = question.blanks.length;
+    let rawScore = correctCount - incorrectCount;
+    const score = Math.max(0, rawScore);
+    const maxScore = question.correctOptions.length;
 
-    const newAttempt = new AttemptReadingFIBDropdown({
+    const newAttempt = new AttemptReadingMultiChoiceMultiAnswer({
       userId,
       questionId,
-      userAnswers: evaluatedAnswers,
+      userSelectedOptions,
       score,
       maxScore,
     });
@@ -126,34 +124,27 @@ export const submitAttempt = async (req, res) => {
 // Get attempts for a specific question and user
 export const getAttempts = async (req, res) => {
   try {
-    console.log("Entering getAttempts");
-    console.log("req.user:", req.user);
-    console.log("req.params:", req.params);
-    
     const { questionId } = req.params;
     const userId = req.user?.id;
 
     if (!userId) {
-      console.error("User ID missing from token");
       return res.status(401).json({ success: false, message: "User not authenticated" });
     }
 
-    const attempts = await AttemptReadingFIBDropdown.find({
+    const attempts = await AttemptReadingMultiChoiceMultiAnswer.find({
       questionId,
       userId,
     }).sort({ createdAt: -1 });
 
-    console.log(`Found ${attempts.length} attempts`);
     res.status(200).json({ success: true, data: attempts });
   } catch (error) {
-    console.error("getAttempts Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
 export const getAll = async (req, res) => {
   try {
-    const attempts = await AttemptReadingFIBDropdown.find();
+    const attempts = await AttemptReadingMultiChoiceMultiAnswer.find();
     return res.status(200).json({ success: true, data: attempts });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
