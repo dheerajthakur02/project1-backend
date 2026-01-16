@@ -67,7 +67,9 @@ app.use("/api/retell-lecture", retellRoutes)
 app.use("/api/respond-situation", respondRoutes)
 app.use("/api/reading-fib-dropdown", readingFIBDropdownRoutes)
 
-
+app.use('/hello', (req, res) => {
+  res.send('Hello from the server!');
+});
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server is running on the port ${PORT}`);
