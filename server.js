@@ -46,10 +46,18 @@ app.use("/api/attempts", attemptRoutes);
 
 import repeatRoutes from "./routes/repeat.route.js";
 import imageRoutes from "./routes/imageRoutes.js"
+import shortAsnwerRoutes from "./routes/shortAnswer.route.js"
+import summarizeGroupRoutes from "./routes/summarizeGroup.route.js"
+import retellRoutes from "./routes/retell.route.js"
+import respondRoutes from "./routes/respondSituation.js"
 import { connectCloudinary } from "./config/cloudinary.js";
 
 app.use("/api/repeat-sentence", repeatRoutes);
 app.use("/api/image", imageRoutes);
+app.use("/api/short-answer", shortAsnwerRoutes)
+app.use("/api/summarize-group", summarizeGroupRoutes)
+app.use("/api/retell-lecture", retellRoutes)
+app.use("/api/respond-situation", respondRoutes)
 
 
 const PORT = process.env.PORT;
