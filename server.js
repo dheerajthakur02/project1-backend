@@ -45,32 +45,45 @@ app.use("/api/read-aloud", readAloudRoutes);
 app.use("/api/attempts", attemptRoutes);
 
 import repeatRoutes from "./routes/repeat.route.js";
-import imageRoutes from "./routes/imageRoutes.js"
-import shortAsnwerRoutes from "./routes/shortAnswer.route.js"
-import summarizeGroupRoutes from "./routes/summarizeGroup.route.js"
-import retellRoutes from "./routes/retell.route.js"
-import respondRoutes from "./routes/respondSituation.js"
-import summarizeTextRoutes from "./routes/wriitng/summarizeTextRoutes.js"
-import essayRoutes from "./routes/wriitng/essayRoutes.js"
+import imageRoutes from "./routes/imageRoutes.js";
+import shortAsnwerRoutes from "./routes/shortAnswer.route.js";
+import summarizeGroupRoutes from "./routes/summarizeGroup.route.js";
+import retellRoutes from "./routes/retell.route.js";
+import respondRoutes from "./routes/respondSituation.js";
+import summarizeTextRoutes from "./routes/wriitng/summarizeTextRoutes.js";
+import essayRoutes from "./routes/wriitng/essayRoutes.js";
+import readingMultiChoiceMultiAnswerRoutes from "./routes/readingMultiChoiceMultiAnswer.route.js";
+import readingMultiChoiceSingleAnswerRoutes from "./routes/readingMultiChoiceSingleAnswer.route.js";
+import readingFIBDropdownRoutes from "./routes/readingFIBDropdown.route.js";
 
 app.use("/api/summarize-text", summarizeTextRoutes);
-app.use("/api/essay", essayRoutes); 
-import readingFIBDropdownRoutes from "./routes/readingFIBDropdown.route.js"
+app.use("/api/essay", essayRoutes);
 
 import { connectCloudinary } from "./config/cloudinary.js";
 
 app.use("/api/repeat-sentence", repeatRoutes);
 app.use("/api/image", imageRoutes);
-app.use("/api/short-answer", shortAsnwerRoutes)
-app.use("/api/summarize-group", summarizeGroupRoutes)
-app.use("/api/retell-lecture", retellRoutes)
-app.use("/api/respond-situation", respondRoutes)
-app.use("/api/reading-fib-dropdown", readingFIBDropdownRoutes)
-import readingMultiChoiceMultiAnswerRoutes from "./routes/readingMultiChoiceMultiAnswer.route.js"
-app.use("/api/reading-multi-choice-multi-answer", readingMultiChoiceMultiAnswerRoutes)
+app.use("/api/short-answer", shortAsnwerRoutes);
+app.use("/api/summarize-group", summarizeGroupRoutes);
+app.use("/api/retell-lecture", retellRoutes);
+app.use("/api/respond-situation", respondRoutes);
+app.use("/api/reading-fib-dropdown", readingFIBDropdownRoutes);
+app.use(
+  "/api/reading-multi-choice-multi-answer",
+  readingMultiChoiceMultiAnswerRoutes,
+);
+app.use(
+  "/api/reading-multi-choice-single-answer",
+  readingMultiChoiceSingleAnswerRoutes,
+);
+import readingFIBDragDropRoutes from "./routes/readingFIBDragDrop.route.js"
+app.use("/api/reading-fib-drag-drop", readingFIBDragDropRoutes)
 
-app.use('/hello', (req, res) => {
-  res.send('Hello from the server!');
+import readingReorderRoutes from "./routes/readingReorder.route.js";
+app.use("/api/reading-reorder", readingReorderRoutes);
+
+app.use("/hello", (req, res) => {
+  res.send("Hello from the server!");
 });
 const PORT = process.env.PORT;
 app.listen(PORT, () => {

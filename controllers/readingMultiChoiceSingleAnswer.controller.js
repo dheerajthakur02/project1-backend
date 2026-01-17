@@ -1,0 +1,141 @@
+import { ReadingMultiChoiceSingleAnswer } from "../models/readingMultiChoiceSingleAnswer.model.js";
+import { AttemptReadingMultiChoiceSingleAnswer } from "../models/attemptReadingMultiChoiceSingleAnswer.model.js";
+
+// Add a new question
+export const addQuestion = async (req, res) => {
+  try {
+    const { title, text, question, options, correctAnswer, difficulty, isPrediction } = req.body;
+
+    const newQuestion = new ReadingMultiChoiceSingleAnswer({
+      title,
+      text,
+      question,
+      options,
+      correctAnswer,
+      difficulty,
+      isPrediction,
+    });
+
+    await newQuestion.save();
+    res.status(201).json({
+      success: true,
+      data: newQuestion,
+      message: "Reading Multi Choice Single Answer Question added successfully",
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get questions with user attempts status
+export const getQuestions = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const questions = await ReadingMultiChoiceSingleAnswer.find().lean();
+
+    // Fetch user attempts to add status
+    const questionsWithStatus = await Promise.all(
+      questions.map(async (question) => {
+        if (userId) {
+          const attempts = await AttemptReadingMultiChoiceSingleAnswer.find({
+            userId,
+            questionId: question._id,
+          });
+          const attemptCount = attempts.length;
+          const status =
+            attemptCount > 0 ? `Practiced (${attemptCount})` : "Not Practiced";
+          return { ...question, status, attemptCount };
+        }
+        return { ...question, status: "Not Practiced", attemptCount: 0 };
+      })
+    );
+
+    res.status(200).json({ success: true, data: questionsWithStatus });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get single question by ID
+export const getQuestionById = async (req, res) => {
+  try {
+    const question = await ReadingMultiChoiceSingleAnswer.findById(req.params.id);
+    if (!question) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Question not found" });
+    }
+    res.status(200).json({ success: true, data: question });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Submit an attempt
+export const submitAttempt = async (req, res) => {
+  try {
+    const { userId, questionId, userAnswer } = req.body;
+
+    const question = await ReadingMultiChoiceSingleAnswer.findById(questionId);
+    if (!question) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Question not found" });
+    }
+
+    // Scoring Logic: 1 if correct, else 0
+    let score = 0;
+    if (userAnswer === question.correctAnswer) {
+      score = 1;
+    }
+    const maxScore = 1;
+
+    const newAttempt = new AttemptReadingMultiChoiceSingleAnswer({
+      userId,
+      questionId,
+      userAnswer,
+      score,
+      maxScore,
+    });
+
+    await newAttempt.save();
+
+    res.status(201).json({
+      success: true,
+      data: newAttempt,
+      message: "Attempt submitted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get attempts for a specific question and user
+export const getAttempts = async (req, res) => {
+  try {
+    const { questionId } = req.params;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "User not authenticated" });
+    }
+
+    const attempts = await AttemptReadingMultiChoiceSingleAnswer.find({
+      questionId,
+      userId,
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({ success: true, data: attempts });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getAll = async (req, res) => {
+  try {
+    const attempts = await AttemptReadingMultiChoiceSingleAnswer.find();
+    return res.status(200).json({ success: true, data: attempts });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
