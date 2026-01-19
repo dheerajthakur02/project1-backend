@@ -57,10 +57,18 @@ import readingMultiChoiceSingleAnswerRoutes from "./routes/readingMultiChoiceSin
 import readingFIBDropdownRoutes from "./routes/readingFIBDropdown.route.js";
 import sstRoutes from "./routes/listening/sstRoutes.js";
 import hscRoutes from "./routes/listening/hscRoutes.js";
+import chooseSingleAnswerRoute from "./routes/listening/chooseSingleAnswerRoute.js";
+import selectMissingWordRoute from "./routes/listening/selectMissingWordRoute.js";
+
+app.use("/api/select-missing-word", selectMissingWordRoute);
+app.use("/api/choose-single-answer", chooseSingleAnswerRoute);
+
+
 app.use("/api/hsc", hscRoutes);
 app.use("/api/summarize-text", summarizeTextRoutes);
 app.use("/api/essay", essayRoutes);
 app.use("/api/sst", sstRoutes);
+
 
 import { connectCloudinary } from "./config/cloudinary.js";
 
