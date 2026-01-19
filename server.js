@@ -76,11 +76,17 @@ app.use(
   "/api/reading-multi-choice-single-answer",
   readingMultiChoiceSingleAnswerRoutes,
 );
-import readingFIBDragDropRoutes from "./routes/readingFIBDragDrop.route.js"
-app.use("/api/reading-fib-drag-drop", readingFIBDragDropRoutes)
+import readingFIBDragDropRoutes from "./routes/readingFIBDragDrop.route.js";
+app.use("/api/reading-fib-drag-drop", readingFIBDragDropRoutes);
 
 import readingReorderRoutes from "./routes/readingReorder.route.js";
 app.use("/api/reading-reorder", readingReorderRoutes);
+
+import listeningFIBRoutes from "./routes/listening/listeningFIBRoutes.js";
+app.use("/api/listening-fib", listeningFIBRoutes);
+
+import listeningMultiChoiceMultiAnswerRoutes from "./routes/listening/listeningMultiChoiceMultiAnswerRoutes.js";
+app.use("/api/listening-multi-choice-multi-answer", listeningMultiChoiceMultiAnswerRoutes);
 
 app.use("/hello", (req, res) => {
   res.send("Hello from the server!");
