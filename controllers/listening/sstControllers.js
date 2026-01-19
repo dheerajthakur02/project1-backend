@@ -240,84 +240,194 @@ export const updateQuestion = async (req, res) => {
 
 
 
+
+// export const submitSSTAttempt = async (req, res) => {
+//   try {
+//     const { questionId, summaryText, timeTaken, userId } = req.body;
+
+//     console.log("Received SST Attempt:", { questionId, summaryText, timeTaken, userId });
+//     const question = await SSTQuestion.findById(questionId);
+//     if (!question) {
+//       return res.status(404).json({ success: false, message: "Question not found" });
+//     }
+
+//     /* ---------------- WORD COUNT ---------------- */
+//     const words = summaryText.trim().split(/\s+/).filter(Boolean);
+//     const wordCount = words.length;
+
+//     /* ---------------- FORM (2) ---------------- */
+//     let form = wordCount >= 5 && wordCount <= 50 ? 2 : 0;
+
+//     /* ---------------- CONTENT (4) ---------------- */
+//     const answerWords = question.answer
+//       .toLowerCase()
+//       .replace(/[^a-z\s]/g, "")
+//       .split(/\s+/)
+//       .filter(w => w.length > 3);
+
+//     const uniqueAnswerWords = [...new Set(answerWords)];
+
+//     const matchedWords = uniqueAnswerWords.filter(word =>
+//       summaryText.toLowerCase().includes(word)
+//     );
+
+//     const matchRatio = matchedWords.length / uniqueAnswerWords.length;
+
+//     let content = 0;
+//     if (matchRatio >= 0.6) content = 4;
+//     else if (matchRatio >= 0.4) content = 3;
+//     else if (matchRatio >= 0.25) content = 2;
+//     else if (matchRatio >= 0.1) content = 1;
+
+//     /* ---------------- GRAMMAR (2) ---------------- */
+//     const sentences = summaryText
+//       .split(/[.!?]/)
+//       .map(s => s.trim())
+//       .filter(Boolean);
+
+//     const correctSentences = sentences.filter(
+//       s => /^[A-Z]/.test(s)
+//     ).length;
+
+//     const grammar =
+//       sentences.length > 0 && correctSentences / sentences.length >= 0.8 ? 2 : 1;
+
+//     /* ---------------- VOCABULARY (2) ---------------- */
+//     const uniqueWords = new Set(words.map(w => w.toLowerCase())).size;
+//     const vocabRatio = uniqueWords / wordCount;
+//     const vocabulary = vocabRatio >= 0.6 ? 2 : 1;
+
+//     /* ---------------- SPELLING (2) ---------------- */
+//     let spelling = 2;
+//     if (summaryText.includes("  ")) spelling = 1;
+
+//     /* ---------------- TOTAL (12) ---------------- */
+//     const totalScore = content + form + grammar + vocabulary + spelling;
+
+//     const attempt = await SSTAttempt.create({
+//       questionId,
+//       userId,
+//       summaryText,
+//       wordCount,
+//       scores: {
+//         content,
+//         form,
+//         grammar,
+//         vocabulary,
+//         spelling,
+//       },
+//       totalScore,
+//       timeTaken,
+//     });
+
+//     res.status(201).json({
+//       success: true,
+//       data: {
+//         attemptId: attempt._id,
+//         totalScore,
+//         scores: attempt.scores,
+//         matchedKeywords: matchedWords.slice(0, 10),
+//         wordCount,
+//       },
+//     });
+
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
 export const submitSSTAttempt = async (req, res) => {
-    try {
-        const { questionId, summaryText, timeTaken, userId } = req.body;
+  try {
+    
+    const { questionId, summaryText, timeTaken, userId } = req.body;
 
-        // 1. Fetch the original question data
-        const question = await SSTQuestion.findById(questionId);
-        if (!question) return res.status(404).json({ message: "Question not found" });
-
-        const words = summaryText.trim().split(/\s+/).filter(w => w.length > 0);
-        const wordCount = words.length;
-
-        /* ---------- SCORING LOGIC (PTE STANDARDS) ---------- */
-
-        // A. FORM (Max 2)
-        // 50-70 words = 2 points
-        // 40-49 or 71-100 words = 1 point
-        // <40 or >100 = 0 points
-        let form = 0;
-        if (wordCount >= 50 && wordCount <= 70) form = 2;
-        else if ((wordCount >= 40 && wordCount < 50) || (wordCount > 70 && wordCount <= 100)) form = 1;
-        else form = 0;
-
-        // B. CONTENT (Max 2)
-        // Checks how many keywords from the audio are in the summary
-        let content = 0;
-        const foundKeywords = question.keywords.filter(kw => 
-            summaryText.toLowerCase().includes(kw.toLowerCase())
-        );
-        const keywordRatio = foundKeywords.length / question.keywords.length;
-
-        if (keywordRatio >= 0.6) content = 2;
-        else if (keywordRatio >= 0.3) content = 1;
-        else content = 0;
-
-        // C. GRAMMAR (Max 2)
-        // Simplified check: Sentences start with Capital and end with Period
-        const sentences = summaryText.split(/[.!?]+/).filter(s => s.trim().length > 0);
-        const correctSentences = sentences.filter(s => /^[A-Z]/.test(s.trim())).length;
-        let grammar = (correctSentences / sentences.length >= 0.8) ? 2 : 1;
-
-        // D. VOCABULARY (Max 2)
-        // Lexical range - unique words check
-        const uniqueWords = new Set(words.map(w => w.toLowerCase())).size;
-        const vocabScore = (uniqueWords / wordCount > 0.6) ? 2 : 1;
-
-        // E. SPELLING (Max 2)
-        // Simulating spelling (In real prod, use a spell-check library)
-        let spelling = 2; 
-        if (summaryText.includes("  ")) spelling = 1; // Basic error check
-
-        /* ---------- TOTALS ---------- */
-        const totalScore = content + form + grammar + vocabScore + spelling;
-        const overallScore = Math.round((totalScore / 10) * 90);
-
-        const attempt = await SSTAttempt.create({
-            questionId,
-            userId,
-            summaryText,
-            wordCount,
-            scores: {
-                content,
-                form,
-                grammar,
-                vocabulary: vocabScore,
-                spelling
-            },
-            totalScore,
-            overallScore,
-            timeTaken
-        });
-
-        res.status(201).json({
-            success: true,
-            data: attempt
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: error.message });
+    const question = await SSTQuestion.findById(questionId);
+    if (!question) {
+      return res.status(404).json({ success: false, message: "Question not found" });
     }
+
+    // 1. Clean Text Helper
+    const clean = (text) => text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").trim();
+    const words = summaryText.trim().split(/\s+/).filter(Boolean);
+    const wordCount = words.length;
+
+    /* ---------------- FORM (Max 2) ---------------- */
+    // PTE Standard: 50-70 words is ideal. 
+    // We will allow 40-75 for full marks to be lenient, or strict 50-70.
+    let form = 0;
+    if (wordCount >= 50 && wordCount <= 70) form = 2;
+    else if ((wordCount >= 40 && wordCount < 50) || (wordCount > 70 && wordCount <= 100)) form = 1;
+    else form = 0;
+
+    /* ---------------- CONTENT (Max 4) ---------------- */
+    const targetClean = clean(question.answer);
+    const userClean = clean(summaryText);
+    
+    const targetWords = [...new Set(targetClean.split(/\s+/).filter(w => w.length > 3))];
+    const matchedWords = targetWords.filter(word => userClean.includes(word));
+
+    const matchRatio = matchedWords.length / targetWords.length;
+
+    let content = 0;
+    if (matchRatio >= 0.8) content = 4; // Perfect match
+    else if (matchRatio >= 0.6) content = 3;
+    else if (matchRatio >= 0.4) content = 2;
+    else if (matchRatio >= 0.2) content = 1;
+
+    /* ---------------- GRAMMAR (Max 2) ---------------- */
+    // Check if it starts with capital and ends with period
+    const hasCapitalStart = /^[A-Z]/.test(summaryText.trim());
+    const hasPeriodEnd = /[.!?]$/.test(summaryText.trim());
+    
+    let grammar = 0;
+    if (hasCapitalStart && hasPeriodEnd) grammar = 2;
+    else if (hasCapitalStart || hasPeriodEnd) grammar = 1;
+
+    /* ---------------- VOCABULARY (Max 2) ---------------- */
+    const uniqueWords = new Set(words.map(w => w.toLowerCase())).size;
+    const vocabRatio = uniqueWords / wordCount;
+    let vocabulary = vocabRatio >= 0.55 ? 2 : 1;
+
+    /* ---------------- SPELLING (Max 2) ---------------- */
+    // Simple check: double spaces or no spaces after periods usually mean bad spelling/formatting
+    let spelling = 2;
+    if (summaryText.includes("  ") || /[a-z][.][a-z]/.test(summaryText)) spelling = 1;
+
+    /* ---------------- TOTALS ---------------- */
+    const totalScore = content + form + grammar + vocabulary + spelling; // Max 12
+    
+    // Calculate Listening/Writing scores for UI (Based on 10 or 90 scale)
+    // Here we scale to 10 for your UI
+    const scoreOutOf10 = Number(((totalScore / 12) * 10).toFixed(1));
+    const writingScore = Number((scoreOutOf10 / 2).toFixed(1));
+    const listeningScore = Number((scoreOutOf10 / 2).toFixed(1));
+
+    const attempt = await SSTAttempt.create({
+      questionId,
+      userId,
+      summaryText,
+      wordCount,
+      scores: { content, form, grammar, vocabulary, spelling },
+      totalScore: scoreOutOf10, 
+      timeTaken,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        ...attempt._doc,
+        totalScore: scoreOutOf10, // Matching frontend key
+        writingScore,
+        readingScore: listeningScore, // In SST, listening is the primary skill
+        misSpelled: 0, 
+        structureErrors: grammar < 2 ? 1 : 0,
+        styleIssues: vocabulary < 2 ? 1 : 0
+      },
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 };

@@ -75,6 +75,7 @@ export const getQuestionById = async (req, res) => {
 export const submitAttempt = async (req, res) => {
   try {
     const { userId, questionId, userSelectedOptions } = req.body;
+    console.log("Received attempt data:", req.body);
 
     const question = await ReadingMultiChoiceMultiAnswer.findById(questionId);
     if (!question) {

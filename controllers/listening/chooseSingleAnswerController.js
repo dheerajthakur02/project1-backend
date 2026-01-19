@@ -1,25 +1,26 @@
 import fs from "fs";
 import { createClient } from "@deepgram/sdk";
-import { HighlightSummaryQuestion, HighlightSummaryAttempt } from "../../models/listening/HCSQuestion.js";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import { cloudinary } from "../../config/cloudinary.js";
+import { ChooseSingleAnswerAttempt, ChooseSingleAnswerQuestion } from "../../models/listening/ChooseSingleAnswer.js";
 dotenv.config();
 const deepgram = createClient(process.env.API_KEY);
+
 // ---------- CREATE QUESTION ----------
-export const addHighlightSummaryQuestion = async (req, res) => {
+export const addChooseSingleAnswerQuestion = async (req, res) => {
   try {
-    const { summaries, difficulty } = req.body;
+    const { options, difficulty } = req.body;
 
     if (!req.file) {
       return res.status(400).json({ success: false, message: "Audio is required" });
     }
 
-    if (!summaries || summaries.length !== 3) {
-      return res.status(400).json({ success: false, message: "Provide 3 summaries" });
+    if (!options || options.length !== 3) {
+      return res.status(400).json({ success: false, message: "Provide 3 options" });
     }
 
-    // Upload audio
+    //Upload audio
     const audio = await cloudinary.uploader.upload(req.file.path, { resource_type: "video" });
 
     // Transcribe audio using Deepgram
@@ -35,63 +36,27 @@ export const addHighlightSummaryQuestion = async (req, res) => {
     const transcript = result.results.channels[0].alternatives[0].transcript;
 
     // Save question
-    const question = await HighlightSummaryQuestion.create({
+    const question = await ChooseSingleAnswerQuestion.create({
       audioUrl: audio.secure_url,
       cloudinaryId: audio.public_id,
-      transcript,
-      summaries: summaries.map(s => ({
-        text: s.text,
-        isCorrect: s.isCorrect
+      transcript: transcript,
+      options: options.map(o => ({
+        text: o.text,
+        isCorrect: o.isCorrect
       })),
       difficulty: difficulty || "Medium"
     });
 
     res.status(201).json({ success: true, question });
   } catch (error) {
-    console.error("ADD HIGHLIGHT SUMMARY QUESTION ERROR:", error);
+    console.error("ADD CHOOSE SINGLE ANSWER QUESTION ERROR:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-
-
-// ---------- GET QUESTIONS ----------
-export const getHighlightSummaryQuestions = async (req, res) => {
-  try {
-    const questions = await HighlightSummaryQuestion.find();
-    res.status(200).json({ success: true, questions });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// ---------- ADD ATTEMPT ----------
-export const addHighlightSummaryAttempt = async (req, res) => {
-  try {
-    const { questionId, userId, selectedSummaryIndex, timeTaken } = req.body;
-
-    const question = await HighlightSummaryQuestion.findById(questionId);
-    if (!question) return res.status(404).json({ success: false, message: "Question not found" });
-
-    const isCorrect = question.summaries[selectedSummaryIndex]?.isCorrect || false;
-
-    const attempt = await HighlightSummaryAttempt.create({
-      questionId,
-      userId,
-      selectedSummaryIndex,
-      isCorrect,
-      timeTaken
-    });
-
-    res.status(201).json({ success: true, attempt });
-  } catch (error) {
-    console.error("ADD HIGHLIGHT SUMMARY ATTEMPT ERROR:", error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
 
 // ---------- GET USER ATTEMPTS ----------
- export const getHighlightSummaryQuestionsWithAttempts = async (req, res) => {
+ export const getChooseSingleAnswerWithAttempts = async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -106,11 +71,11 @@ export const addHighlightSummaryAttempt = async (req, res) => {
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
     /* -------------------- 2. Aggregation Pipeline -------------------- */
-    const questions = await HighlightSummaryQuestion.aggregate([
+    const questions = await ChooseSingleAnswerQuestion.aggregate([
       /* ================= GET ALL ATTEMPTS ================= */
       {
         $lookup: {
-          from: HighlightSummaryAttempt.collection.name,
+          from: ChooseSingleAnswerAttempt.collection.name,
           let: { qId: "$_id" },
           pipeline: [
             {
@@ -153,7 +118,7 @@ export const addHighlightSummaryAttempt = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("GET HIGHLIGHT SUMMARY QUESTIONS ERROR:", error);
+    console.error("GET CHOOSE SINGLE ANSWER QUESTIONS ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Server error while fetching questions"
@@ -163,25 +128,25 @@ export const addHighlightSummaryAttempt = async (req, res) => {
 
 
 
-export const updateQuestion = async (req, res) => {
+export const updateChooseSingleAnswerQuestion = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const question = await HighlightSummaryQuestion.findById(id);
+    const question = await ChooseSingleAnswerQuestion.findById(id);
     if (!question) {
       return res.status(404).json({ success: false, message: "Question not found" });
     }
 
-    const { title, difficulty,  summaries } = req.body;
+    const { title, difficulty, options } = req.body;
 
     // ---------- AUDIO UPDATE ----------
     if (req.file) {
       // Delete old audio from Cloudinary
-      // if (question.cloudinaryId) {
-      //   await cloudinary.uploader.destroy(question.cloudinaryId, {
-      //     resource_type: "video",
-      //   });
-      // }
+      if (question.cloudinaryId) {
+        await cloudinary.uploader.destroy(question.cloudinaryId, {
+          resource_type: "video",
+        });
+      }
 
       // Upload new audio
       const uploaded = await cloudinary.uploader.upload(req.file.path, {
@@ -211,18 +176,18 @@ export const updateQuestion = async (req, res) => {
     if (title !== undefined) question.title = title;
     if (difficulty !== undefined) question.difficulty = difficulty;
 
-    // ---------- SUMMARIES UPDATE ----------
-    if (summaries !== undefined) {
-      const correctCount = summaries.filter(s => s.isCorrect === true).length;
+    // ---------- OPTIONS UPDATE ----------
+    if (options !== undefined) {
+      const correctCount = options.filter(o => o.isCorrect === true).length;
 
       if (correctCount !== 1) {
         return res.status(400).json({
           success: false,
-          message: "Exactly one summary must be marked as correct",
+          message: "Exactly one option must be marked as correct",
         });
       }
 
-      question.summaries = summaries;
+      question.options = options;
     }
 
     await question.save();
@@ -233,7 +198,7 @@ export const updateQuestion = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("UPDATE HIGHLIGHT SUMMARY QUESTION ERROR:", error);
+    console.error("UPDATE CHOOSE SINGLE ANSWER QUESTION ERROR:", error);
     res.status(500).json({
       success: false,
       message: error.message,
@@ -242,13 +207,14 @@ export const updateQuestion = async (req, res) => {
 };
 
 
-export const submitHCSAttempt = async (req, res) => {
+export const submitChooseSingleAnswerAttempt = async (req, res) => {
   try {
-    const { questionId, userId, selectedSummaryIndex,timeTaken } = req.body;
 
+    const { questionId, userId, selectedOptionIndex, timeTaken } = req.body;
 
+console.log("Received attempt data:", req.body);
     /* -------------------- 1. Basic Validation -------------------- */
-    if (!questionId || !userId || selectedSummaryIndex === undefined) {
+    if (!questionId || !userId || selectedOptionIndex === undefined) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields"
@@ -256,7 +222,7 @@ export const submitHCSAttempt = async (req, res) => {
     }
 
     /* -------------------- 2. Fetch Question -------------------- */
-    const question = await HighlightSummaryQuestion.findById(questionId);
+    const question = await ChooseSingleAnswerQuestion.findById(questionId);
 
     if (!question) {
       return res.status(404).json({
@@ -266,44 +232,43 @@ export const submitHCSAttempt = async (req, res) => {
     }
 
     /* -------------------- 3. Validate Index -------------------- */
-    const summaries = question.summaries;
+    const options = question.options;
 
     if (
-      !Array.isArray(summaries) ||
-      selectedSummaryIndex < 0 ||
-      selectedSummaryIndex >= summaries.length
+      !Array.isArray(options) ||
+      selectedOptionIndex < 0 ||
+      selectedOptionIndex >= options.length
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid summary selection"
+        message: "Invalid option selection"
       });
     }
 
     /* -------------------- 4. Check Correctness -------------------- */
-    const userSelectedChoice = summaries[selectedSummaryIndex];
+    const userSelectedChoice = options[selectedOptionIndex];
     const isCorrect = userSelectedChoice.isCorrect === true;
 
-    const correctIndex = summaries.findIndex(s => s.isCorrect === true);
+    const correctIndex = options.findIndex(o => o.isCorrect === true);
 
     if (correctIndex === -1) {
       return res.status(500).json({
         success: false,
-        message: "Question configuration error: no correct summary found"
+        message: "Question configuration error: no correct option found"
       });
     }
 
-    const correctChoice = summaries[correctIndex];
-
+    const correctChoice = options[correctIndex];
     /* -------------------- 5. Scoring System -------------------- */
     const score = isCorrect ? 1 : 0;
     const readingScore = isCorrect ? 0.5 : 0;
     const listeningScore = isCorrect ? 0.5 : 0;
 
     /* -------------------- 6. Save Attempt -------------------- */
-    const attempt = await HighlightSummaryAttempt.create({
+    const attempt = await ChooseSingleAnswerAttempt.create({
       questionId,
       userId,
-      selectedSummaryIndex,
+      selectedOptionIndex,
       isCorrect,
       timeTaken: timeTaken || null
     });
@@ -320,7 +285,7 @@ export const submitHCSAttempt = async (req, res) => {
         score,
         readingScore,
         listeningScore,
-        myAnswer: indexToLabel(selectedSummaryIndex),
+        myAnswer: indexToLabel(selectedOptionIndex),
         myAnswerText: userSelectedChoice.text,
         correctAnswer: indexToLabel(correctIndex),
         correctAnswerText: correctChoice.text,
@@ -329,7 +294,7 @@ export const submitHCSAttempt = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("HCS Attempt Error:", error);
+    console.error("Single Answer Attempt Error:", error);
     return res.status(500).json({
       success: false,
       message: "Server error while submitting attempt"
