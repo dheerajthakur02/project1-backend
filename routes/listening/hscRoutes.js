@@ -5,19 +5,22 @@ import {
   getHighlightSummaryQuestions,
   addHighlightSummaryAttempt,
   getHighlightSummaryQuestionsWithAttempts ,
-  updateQuestion
+  updateQuestion,
+  submitHCSAttempt
 } from "../../controllers/listening/hcsControllers.js";
+
 
 const router = express.Router();
 const upload = multer({ dest: "uploads/" });
 
 // Question routes
 router.post("/questions", upload.single("audio"), addHighlightSummaryQuestion);
-router.get("/questions", getHighlightSummaryQuestions);
+router.get("/questions/userId", getHighlightSummaryQuestions);
 router.put("/questions/:id", upload.single("audio"), updateQuestion)
 
 // Attempt routes
 router.post("/attempts", addHighlightSummaryAttempt);
 router.get("/attempts/:userId", getHighlightSummaryQuestionsWithAttempts);
+router.post("/submit", upload.none(), submitHCSAttempt);
 
 export default router;

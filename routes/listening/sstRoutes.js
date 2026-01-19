@@ -16,6 +16,6 @@ router.get('/questions/:userId', getQuestionsWithAttempts);
 router.put('/questions/:id', upload.single('audio'), updateQuestion); // Partial update
 
 // Submit attempt
-router.post('/submit', submitSSTAttempt);
+router.post('/submit', upload.none(), submitSSTAttempt);
 
 export default router;

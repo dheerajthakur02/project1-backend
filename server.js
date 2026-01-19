@@ -55,9 +55,12 @@ import essayRoutes from "./routes/wriitng/essayRoutes.js";
 import readingMultiChoiceMultiAnswerRoutes from "./routes/readingMultiChoiceMultiAnswer.route.js";
 import readingMultiChoiceSingleAnswerRoutes from "./routes/readingMultiChoiceSingleAnswer.route.js";
 import readingFIBDropdownRoutes from "./routes/readingFIBDropdown.route.js";
-
+import sstRoutes from "./routes/listening/sstRoutes.js";
+import hscRoutes from "./routes/listening/hscRoutes.js";
+app.use("/api/hsc", hscRoutes);
 app.use("/api/summarize-text", summarizeTextRoutes);
 app.use("/api/essay", essayRoutes);
+app.use("/api/sst", sstRoutes);
 
 import { connectCloudinary } from "./config/cloudinary.js";
 
