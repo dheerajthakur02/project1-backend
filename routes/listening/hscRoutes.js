@@ -1,0 +1,23 @@
+import express from "express";
+import multer from "multer";
+import {
+  addHighlightSummaryQuestion,
+  getHighlightSummaryQuestions,
+  addHighlightSummaryAttempt,
+  getHighlightSummaryQuestionsWithAttempts ,
+  updateQuestion
+} from "../../controllers/listening/hcsControllers.js";
+
+const router = express.Router();
+const upload = multer({ dest: "uploads/" });
+
+// Question routes
+router.post("/questions", upload.single("audio"), addHighlightSummaryQuestion);
+router.get("/questions", getHighlightSummaryQuestions);
+router.put("/questions/:id", upload.single("audio"), updateQuestion)
+
+// Attempt routes
+router.post("/attempts", addHighlightSummaryAttempt);
+router.get("/attempts/:userId", getHighlightSummaryQuestionsWithAttempts);
+
+export default router;
