@@ -63,12 +63,12 @@ export const getQuestions = async (req, res) => {
           const attempts = await ListeningMultiChoiceMultiAnswerAttempt.find({
             userId,
             questionId: question._id,
-          });
+          }).sort({ createdAt: -1 });
           const attemptCount = attempts.length;
           const status = attemptCount > 0 ? `Practiced (${attemptCount})` : "Not Practiced";
           
           // Attach last attempt score if needed, or just status
-           return { ...question, status, attemptCount };
+           return { ...question, status, attemptCount, lastAttempts: attempts };
         }
         return { ...question, status: "Not Practiced", attemptCount: 0 };
       })
