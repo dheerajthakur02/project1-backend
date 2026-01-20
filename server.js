@@ -59,7 +59,8 @@ import sstRoutes from "./routes/listening/sstRoutes.js";
 import hscRoutes from "./routes/listening/hscRoutes.js";
 import chooseSingleAnswerRoute from "./routes/listening/chooseSingleAnswerRoute.js";
 import selectMissingWordRoute from "./routes/listening/selectMissingWordRoute.js";
-
+import HIWRoutes from "./routes/listening/HIWRoutes.js";
+app.use("/api/hiw", HIWRoutes);
 app.use("/api/select-missing-word", selectMissingWordRoute);
 app.use("/api/choose-single-answer", chooseSingleAnswerRoute);
 
