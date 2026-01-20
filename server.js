@@ -99,6 +99,9 @@ app.use("/api/listening-fib", listeningFIBRoutes);
 import listeningMultiChoiceMultiAnswerRoutes from "./routes/listening/listeningMultiChoiceMultiAnswerRoutes.js";
 app.use("/api/listening-multi-choice-multi-answer", listeningMultiChoiceMultiAnswerRoutes);
 
+import writeFromDictationRoutes from "./routes/listening/writeFromDictationRoute.js";
+app.use("/api/write-from-dictation", writeFromDictationRoutes);
+
 app.use("/hello", (req, res) => {
   res.send("Hello from the server!");
 });
