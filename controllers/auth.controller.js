@@ -23,10 +23,16 @@ export const register = async (req, res) => {
       exam,
     });
     await user.save();
+    
+    // Auto-login: Generate token and set cookie
+    const token = generateToken(user.id, user.role);
+    setCookie(res, token);
+
     return res.status(201).json({
       message: `Profile registered successfully`,
       success: true,
       data: user,
+      token, // Optional: return token to frontend if needed
     });
   } catch (error) {
     return res.status(500).json({
