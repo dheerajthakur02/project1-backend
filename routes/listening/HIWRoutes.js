@@ -6,9 +6,11 @@ import { createHIWQuestion, getHIWQuestions, submitHIWAttempt, updateHIWQuestion
 
 
 
+import { checkPracticeLimit } from '../../middlewares/practiceLimitMiddleware.js';
+
 router.post('/add', upload.single('audio'), createHIWQuestion);
 router.get('/:userId', getHIWQuestions);
 router.put('/:id', upload.single('audio'), updateHIWQuestion); // Partial update
-router.post('/submit', upload.none(), submitHIWAttempt);
+router.post('/submit', upload.none(), checkPracticeLimit, submitHIWAttempt);
 
 export default router;

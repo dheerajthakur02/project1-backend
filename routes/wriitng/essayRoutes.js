@@ -4,8 +4,10 @@ import { createEssayQuestion, getWriteEssayQuestionsWithAttempts, submitEssayAtt
 
 const router = express.Router();
 
+import { checkPracticeLimit } from "../../middlewares/practiceLimitMiddleware.js";
+
 router.post("/add",  createEssayQuestion);
-router.post("/submit",  submitEssayAttempt);
+router.post("/submit", checkPracticeLimit, submitEssayAttempt);
 router.get("/get/:userId",  getWriteEssayQuestionsWithAttempts);
 
 export default router;

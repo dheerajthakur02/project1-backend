@@ -45,8 +45,28 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
+
+userSchema.add({
+  isPremium: {
+    type: Boolean,
+    default: false,
+  },
+  planType: {
+    type: String, // "7 Days", "15 Days", "30 Days", "60 Days"
+  },
+  subscriptionExpiry: {
+    type: Date,
+  },
+  paymentId: {
+    type: String,
+  },
+  practiceAttemptCount: {
+    type: Number,
+    default: 0,
+  },
+});
 
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;

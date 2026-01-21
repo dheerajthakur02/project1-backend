@@ -5,9 +5,11 @@ import { addSelectMissingWordQuestion, getSelectMissingWordWithAttempts, submitS
 
 
 
+import { checkPracticeLimit } from '../../middlewares/practiceLimitMiddleware.js';
+
 router.post('/add', upload.single('audio'), addSelectMissingWordQuestion);
 router.get('/:userId', getSelectMissingWordWithAttempts);
 router.put('/:id', upload.single('audio'), updateSelectMissingWordQuestion); // Partial update
-router.post('/submit', upload.none(), submitSelectMissingWordAttempt);
+router.post('/submit', upload.none(), checkPracticeLimit, submitSelectMissingWordAttempt);
 
 export default router;

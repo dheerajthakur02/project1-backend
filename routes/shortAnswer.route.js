@@ -30,8 +30,10 @@ router.delete("/:id", deleteQuestion);
 
 /* ================= ATTEMPT ROUTES ================= */
 
+import { checkPracticeLimit } from "../middlewares/practiceLimitMiddleware.js";
+
 // // Submit short answer attempt (student audio)
-router.post("/submit", upload.single("audio"), createShortAnswerAttempt);
+router.post("/submit", upload.single("audio"), checkPracticeLimit, createShortAnswerAttempt);
 
 export default router;
 

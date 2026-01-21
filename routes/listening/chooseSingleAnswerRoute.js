@@ -4,9 +4,11 @@ import { upload } from '../../middlewares/upload.js';
 import { addChooseSingleAnswerQuestion, getChooseSingleAnswerWithAttempts, submitChooseSingleAnswerAttempt, updateChooseSingleAnswerQuestion } from '../../controllers/listening/chooseSingleAnswerController.js';
 
 
+import { checkPracticeLimit } from '../../middlewares/practiceLimitMiddleware.js';
+
 router.post('/add', upload.single('audio'), addChooseSingleAnswerQuestion);
 router.get('/:userId', getChooseSingleAnswerWithAttempts);
 router.put('/:id', upload.single('audio'), updateChooseSingleAnswerQuestion); // Partial update
-router.post('/submit', upload.none(), submitChooseSingleAnswerAttempt);
+router.post('/submit', upload.none(), checkPracticeLimit, submitChooseSingleAnswerAttempt);
 
 export default router;

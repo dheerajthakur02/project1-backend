@@ -64,12 +64,10 @@ app.use("/api/hiw", HIWRoutes);
 app.use("/api/select-missing-word", selectMissingWordRoute);
 app.use("/api/choose-single-answer", chooseSingleAnswerRoute);
 
-
 app.use("/api/hsc", hscRoutes);
 app.use("/api/summarize-text", summarizeTextRoutes);
 app.use("/api/essay", essayRoutes);
 app.use("/api/sst", sstRoutes);
-
 
 import { connectCloudinary } from "./config/cloudinary.js";
 
@@ -98,10 +96,16 @@ import listeningFIBRoutes from "./routes/listening/listeningFIBRoutes.js";
 app.use("/api/listening-fib", listeningFIBRoutes);
 
 import listeningMultiChoiceMultiAnswerRoutes from "./routes/listening/listeningMultiChoiceMultiAnswerRoutes.js";
-app.use("/api/listening-multi-choice-multi-answer", listeningMultiChoiceMultiAnswerRoutes);
+app.use(
+  "/api/listening-multi-choice-multi-answer",
+  listeningMultiChoiceMultiAnswerRoutes,
+);
 
 import writeFromDictationRoutes from "./routes/listening/writeFromDictationRoute.js";
 app.use("/api/write-from-dictation", writeFromDictationRoutes);
+
+import paymentRoutes from "./routes/paymentRoutes.js";
+app.use("/api/payment", paymentRoutes);
 
 app.use("/hello", (req, res) => {
   res.send("Hello from the server!");

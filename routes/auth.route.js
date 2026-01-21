@@ -8,12 +8,14 @@ import {
   logout,
   sendOtpForResetPasswordToUser,
   changePasswordUsingOtp,
+  getAllUsers,
 } from "../controllers/auth.controller.js";
 import { authorize } from "../middlewares/authMiddleware.js";
 const router = express.Router();
 
 router.post("/register", register);
 router.post("/signin", signIn);
+router.get("/users/all", getAllUsers);
 
 router.get("/profile", authorize(), getProfile);
 router.put("/profile", authorize(), updateProfile);

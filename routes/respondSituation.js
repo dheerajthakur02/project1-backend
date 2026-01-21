@@ -10,8 +10,10 @@ router.get("/get/:userId", getRespondSituationQuestionsWithAttempts);
 router.put("/:id", upload.single("audio"), updateRespondSituationQuestion);
 // router.delete("/:id", deleteQuestion);
 
+import { checkPracticeLimit } from "../middlewares/practiceLimitMiddleware.js";
+
 //attempt routes
-router.post("/submit", upload.single("audio"), createRespondSituationAttempt);
+router.post("/submit", upload.single("audio"), checkPracticeLimit, createRespondSituationAttempt);
 
 export default router;
 
