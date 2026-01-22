@@ -1,0 +1,27 @@
+import express from "express";
+import { createListening, 
+  getAllListenings,
+  getListeningById,
+  updateListening,
+  deleteListening,
+  submitListeningResult,
+  getMyListeningResults,
+  getResultsByListeningId,
+  getListeningResultById
+} from "../../controllers/mocktest/listeningController.js";
+
+const router = express.Router();
+
+/* Listening */
+router.post("/",  createListening);
+router.get("/", getAllListenings);
+router.get("/:id", getListeningById);
+router.put("/:id", updateListening);
+router.delete("/:id", deleteListening); 
+/* Results */
+router.post("/result", submitListeningResult);
+router.get("/result/my",  getMyListeningResults);
+router.get("/result/test/:listeningId", getResultsByListeningId);
+router.get("/result/:id", getListeningResultById);
+
+export default router;

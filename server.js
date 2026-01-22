@@ -60,6 +60,21 @@ import hscRoutes from "./routes/listening/hscRoutes.js";
 import chooseSingleAnswerRoute from "./routes/listening/chooseSingleAnswerRoute.js";
 import selectMissingWordRoute from "./routes/listening/selectMissingWordRoute.js";
 import HIWRoutes from "./routes/listening/HIWRoutes.js";
+import speakingRoute from "./routes/mocktest/speakingRoute.js";
+import writingRoute from "./routes/mocktest/writingRoute.js";
+import listeningRoute from "./routes/mocktest/listeningRoute.js";
+import RLRoutes from "./routes/mocktest/questionRoutes/rlRoutes.js";
+
+
+
+app.use("/api/ra", RLRoutes);
+
+
+app.use("/api/speaking", speakingRoute);
+app.use("/api/writing", writingRoute);
+app.use("/api/listening", listeningRoute);
+
+
 app.use("/api/hiw", HIWRoutes);
 app.use("/api/select-missing-word", selectMissingWordRoute);
 app.use("/api/choose-single-answer", chooseSingleAnswerRoute);
