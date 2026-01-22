@@ -12,8 +12,10 @@ router.get("/get/:userId", getRetellQuestionsWithAttempts);
 router.put("/:id", upload.single("audio"), updateRetellQuestion);
 // router.delete("/:id", deleteQuestion);
 
+import { checkPracticeLimit } from "../middlewares/practiceLimitMiddleware.js";
+
 //attempt routes
-router.post("/submit", upload.single("audio"), createRetellAttempt);
+router.post("/submit", upload.single("audio"), checkPracticeLimit, createRetellAttempt);
 
 export default router;
 

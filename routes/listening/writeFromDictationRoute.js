@@ -7,11 +7,20 @@ import {
   getAttempts
 } from "../../controllers/listening/writeFromDictationController.js";
 
+import { checkPracticeLimit } from "../../middlewares/practiceLimitMiddleware.js";
+
 const router = express.Router();
 
-router.post("/add", upload.single("audio"), createQuestion);
+// Admin creates question
+router.post("/create", upload.single("audio"), createQuestion);
+
+// Get all questions
 router.get("/questions/:userId", getQuestions);
-router.post("/submit", submitAttempt);
+
+// Submit attempt
+router.post("/submit", checkPracticeLimit, submitAttempt);
+
+// Get attempts for a question
 router.get("/attempts/:questionId", getAttempts);
 
 export default router;

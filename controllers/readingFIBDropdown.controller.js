@@ -1,4 +1,3 @@
-import { ReadingFIBDropdown } from "../models/readingFIBDropdown.model.js";
 import { AttemptReadingFIBDropdown } from "../models/attemptReadingFIBDropdown.model.js";
 
 // Add a new question

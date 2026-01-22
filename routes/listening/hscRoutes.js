@@ -18,9 +18,11 @@ router.post("/questions", upload.single("audio"), addHighlightSummaryQuestion);
 router.get("/questions/userId", getHighlightSummaryQuestions);
 router.put("/questions/:id", upload.single("audio"), updateQuestion)
 
+import { checkPracticeLimit } from "../../middlewares/practiceLimitMiddleware.js";
+
 // Attempt routes
 router.post("/attempts", addHighlightSummaryAttempt);
 router.get("/attempts/:userId", getHighlightSummaryQuestionsWithAttempts);
-router.post("/submit", upload.none(), submitHCSAttempt);
+router.post("/submit", upload.none(), checkPracticeLimit, submitHCSAttempt);
 
 export default router;

@@ -5,8 +5,10 @@ import { createSummarizeTextQuestion, getSummarizeTextQuestionsWithAttempts, sub
 
 const router = express.Router();
 
+import { checkPracticeLimit } from "../../middlewares/practiceLimitMiddleware.js";
+
 router.post("/add",  createSummarizeTextQuestion);
-router.post("/submit",  submitSummarizeWrittenAttempt);
+router.post("/submit", checkPracticeLimit, submitSummarizeWrittenAttempt);
 router.get("/get/:userId",  getSummarizeTextQuestionsWithAttempts);
 
 export default router;

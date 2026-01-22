@@ -12,7 +12,9 @@ router.get('/questions/:userId', getImageQuestionsWithAttempts);
 router.get('/questions/:id', getQuestionById);
 router.put('/questions/:id',upload.single('image'), updateQuestion);
 
+import { checkPracticeLimit } from '../middlewares/practiceLimitMiddleware.js';
+
 // Attempt Submission (Handling Audio Upload)
-router.post('/attempts', upload.single('audio'), createImageAttempt);
+router.post('/attempts', upload.single('audio'), checkPracticeLimit, createImageAttempt);
 
 export default router;
