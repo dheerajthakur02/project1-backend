@@ -1,5 +1,5 @@
 import express from "express";
-import { createWriting, deleteWriting, getAllWriting, getWritingById, updateWriting } from "../../controllers/mocktest/writingController.js";
+import { createWriting, deleteWriting, getAllWriting, getWritingById, getWritingResultById, submitFullWritingMockTest, updateWriting } from "../../controllers/mocktest/writingController.js";
 
 const router = express.Router();
 
@@ -8,5 +8,8 @@ router.get("/", getAllWriting);
 router.get("/:id", getWritingById);
 router.put("/:id", updateWriting);
 router.delete("/:id", deleteWriting);
+router.post("/attempt", submitFullWritingMockTest);
 
+// In your routes/writingRoutes.js
+router.get("/result/:resultId", getWritingResultById);
 export default router;

@@ -1,4 +1,5 @@
 import { AttemptReadingFIBDropdown } from "../models/attemptReadingFIBDropdown.model.js";
+import { ReadingFIBDropdown } from "../models/readingFIBDropdown.model.js";
 
 // Add a new question
 export const addQuestion = async (req, res) => {
@@ -29,7 +30,7 @@ export const getQuestions = async (req, res) => {
   try {
     const { userId } = req.params;
     const questions = await ReadingFIBDropdown.find().lean();
-
+   
     // Fetch user attempts to add status
     const questionsWithStatus = await Promise.all(
       questions.map(async (question) => {
@@ -125,10 +126,6 @@ export const submitAttempt = async (req, res) => {
 // Get attempts for a specific question and user
 export const getAttempts = async (req, res) => {
   try {
-    console.log("Entering getAttempts");
-    console.log("req.user:", req.user);
-    console.log("req.params:", req.params);
-    
     const { questionId } = req.params;
     const userId = req.user?.id;
 

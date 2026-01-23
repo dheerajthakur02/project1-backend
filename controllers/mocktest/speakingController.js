@@ -147,8 +147,9 @@ export const compareStrings = (original, transcript) => {
 
 export const calculateSpeakingResult = async (req, res) => {
   try {
+
+    console.log("Calculating speaking result with data:", req.body);
     const { userId, speakingTestId, answers } = req.body; 
-    // 'answers' should be an array: [{ questionId, audioUrl, transcript }]
 
     const testData = await Speaking.findById(speakingTestId)
       .populate("readAloudQuestions")

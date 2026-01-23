@@ -48,18 +48,20 @@ writingSchema.pre("save", function (next) {
   next();
 });
 
-
 const WritingResultSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   writingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Writing' },
-  overallScore: Number,
+  overallScore: Number, // The 0-90 PTE score
   scores: [
     {
       questionType: String,
+      questionId: String,
       contentScore: Number,
-      fluencyScore: Number,
-      pronunciationScore: Number,
-      audioUrl: String // Path to their recorded answer
+      grammarScore: Number,
+      vocabularyScore: Number,
+      formScore: Number,
+      spellingScore: Number,
+      answerText: String 
     }
   ],
   createdAt: { type: Date, default: Date.now }

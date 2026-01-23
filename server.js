@@ -64,12 +64,12 @@ import speakingRoute from "./routes/mocktest/speakingRoute.js";
 import writingRoute from "./routes/mocktest/writingRoute.js";
 import listeningRoute from "./routes/mocktest/listeningRoute.js";
 import RLRoutes from "./routes/mocktest/questionRoutes/rlRoutes.js";
-
+import readingRoute from "./routes/mocktest/readingRoute.js";
 
 
 app.use("/api/ra", RLRoutes);
 
-
+app.use("/api/reading", readingRoute);
 app.use("/api/speaking", speakingRoute);
 app.use("/api/writing", writingRoute);
 app.use("/api/listening", listeningRoute);
