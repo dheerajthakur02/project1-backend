@@ -65,14 +65,25 @@ import writingRoute from "./routes/mocktest/writingRoute.js";
 import listeningRoute from "./routes/mocktest/listeningRoute.js";
 import RLRoutes from "./routes/mocktest/questionRoutes/rlRoutes.js";
 import readingRoute from "./routes/mocktest/readingRoute.js";
+import RSRoutes from "./routes/mocktest/questionRoutes/rsRoutes.js"
+import DIRoutes from "./routes/mocktest/questionRoutes/diRoutes.js"
+import ReTellRoutes from "./routes/mocktest/questionRoutes/reTellRoutes.js"
+import sstGroupRoutes from "./routes/mocktest/questionRoutes/sstGroupRoutes.js"
+import hiwRoutes from "./routes/mocktest/questionRoutes/hiwRoutes.js"
+import sgdRoutes from "./routes/mocktest/questionRoutes/sgdRoutes.js"
 
 
-app.use("/api/ra", RLRoutes);
-
-app.use("/api/reading", readingRoute);
-app.use("/api/speaking", speakingRoute);
-app.use("/api/writing", writingRoute);
-app.use("/api/listening", listeningRoute);
+app.use("/api/question/ra", RLRoutes);
+app.use("/api/question/di", DIRoutes)
+app.use("/api/question/rs", RSRoutes)
+app.use("/api/question/rl", ReTellRoutes)
+app.use("/api/question/sst", sstGroupRoutes)
+app.use("/api/question/sgd",sgdRoutes)
+app.use("/api/question/hiw", hiwRoutes)
+app.use("/api/question/reading", readingRoute);
+app.use("/api/question/speaking", speakingRoute);
+app.use("/api/question/writing", writingRoute);
+app.use("/api/question/listening", listeningRoute);
 
 
 app.use("/api/hiw", HIWRoutes);
