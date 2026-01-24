@@ -1,4 +1,4 @@
-import express, { json } from "express";
+import express, { json } from "express"; // Restart Trigger
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -73,6 +73,9 @@ app.use("/api/reading", readingRoute);
 app.use("/api/speaking", speakingRoute);
 app.use("/api/writing", writingRoute);
 app.use("/api/listening", listeningRoute);
+
+import fullMockTestRoutes from "./routes/mocktest/fullMockTestRoutes.js";
+app.use("/api/mocktest/full", fullMockTestRoutes);
 
 
 app.use("/api/hiw", HIWRoutes);
