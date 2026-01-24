@@ -61,7 +61,10 @@ const WritingResultSchema = new mongoose.Schema({
       vocabularyScore: Number,
       formScore: Number,
       spellingScore: Number,
-      answerText: String 
+      spellingScore: Number,
+      answerText: String,
+      score: Number,
+      maxScore: Number 
     }
   ],
   createdAt: { type: Date, default: Date.now }

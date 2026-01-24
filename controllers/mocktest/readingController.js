@@ -140,29 +140,114 @@ export const updateReading = async (req, res) => {
 /**
  * ✅ CALCULATE READING RESULT
  */
+
+/**
+ * ✅ CALCULATE READING RESULT (Server-Side Scoring)
+ */
 export const calculateReadingResult = async (req, res) => {
   try {
     const { userId, readingId, answers } = req.body;
-    // answers = [{ questionId, questionType, score }]
+    // answers = [{ questionId, type, answer }]
+
+    const readingTest = await Reading.findById(readingId)
+       .populate("summarizeWrittenText")
+       .populate("fillInTheBlanksDropdown")
+       .populate("multipleChoiceMultiple")
+       .populate("reOrderParagraphs")
+       .populate("fillInTheBlanksWithDragDrop")
+       .populate("multipleChoiceSingle")
+       .populate("highLightCorrectSummary")
+       .populate("highlightIncorrectWords");
+
+    if (!readingTest) return res.status(404).json({ success: false, message: "Reading Test not found" });
+
+    // Helper to find question (Filtered for safety)
+    const allQuestions = [
+        ...(readingTest.summarizeWrittenText || []),
+        ...(readingTest.fillInTheBlanksDropdown || []),
+        ...(readingTest.multipleChoiceMultiple || []),
+        ...(readingTest.reOrderParagraphs || []),
+        ...(readingTest.fillInTheBlanksWithDragDrop || []),
+        ...(readingTest.multipleChoiceSingle || []),
+        ...(readingTest.highLightCorrectSummary || []),
+        ...(readingTest.highlightIncorrectWords || [])
+    ].filter(q => q && q._id);
+
+    const findQuestion = (id) => allQuestions.find(q => q._id.toString() === id);
 
     let totalScore = 0;
+    const detailedScores = [];
 
-    const detailedScores = answers.map((answer) => {
-      totalScore += answer.score;
+    if (Array.isArray(answers)) {
+      for (const ans of answers) {
+          const question = findQuestion(ans.questionId);
+          let score = 0;
+          let maxScore = 0;
 
-      return {
-        questionType: answer.questionType,
-        contentScore: answer.score,
-      };
-    });
+          if (question) {
+              // SCORING LOGIC
+              try {
+                if (["FIB_R", "FIB_RW", "FIB_DD", "ReadingFIBDropdown", "ReadingFIBDragDrop"].includes(ans.type)) {
+                    // FIB Logic
+                    maxScore = question.blanks?.length || 5;
+                    if (ans.answer && typeof ans.answer === 'object') {
+                        question.blanks.forEach(b => {
+                            if (ans.answer[b.index] === b.correctAnswer) score += 1;
+                        });
+                    }
+                } else if (["MCM", "MCMA", "ReadingMultiChoiceMultiAnswer"].includes(ans.type)) {
+                    // Multi Choice Multi
+                    maxScore = question.options?.length || 1;
+                    if (Array.isArray(ans.answer)) {
+                         const correct = question.correctAnswer || [];
+                         ans.answer.forEach(a => {
+                             if (correct.includes(a)) score += 1;
+                         });
+                    }
+                } else if (["MCS", "ReadingMultiChoiceSingleAnswer", "HCS", "SMW"].includes(ans.type)) {
+                    // Single Choice
+                    maxScore = 1;
+                    if (ans.answer === question.correctAnswer || ans.answer === question.answer) score = 1;
+                } else if (["RO", "ReadingReorder"].includes(ans.type)) {
+                    // Reorder
+                    maxScore = (question.sentences?.length || 1) - 1;
+                    if (Array.isArray(ans.answer) && ans.answer.length > 1) {
+                         ans.answer.forEach((item, idx) => {
+                            if (item.id === question.sentences[idx]?._id?.toString() || item.text === question.sentences[idx]?.text) score += 1;
+                         });
+                         if (score > maxScore) score = maxScore; 
+                    }
+                } else if (["SWT", "SummarizeWrittenText"].includes(ans.type)) {
+                     // Simple logic
+                     maxScore = 7;
+                     const answerText = typeof ans.answer === 'string' ? ans.answer : "";
+                     const words = answerText.split(" ").length;
+                     if (words >= 5 && words <= 75) score = 7;
+                     else score = 0;
+                }
+              } catch (e) {
+                console.error("Error scoring question:", ans.questionId, e);
+              }
+          }
+          
+          detailedScores.push({
+              questionId: ans.questionId,
+              questionType: ans.type,
+              userAnswer: ans.answer,
+              score: score,
+              maxScore: maxScore
+          });
+          totalScore += score;
+      }
+    }
 
-    const overallScore = Math.round(totalScore / answers.length);
+    const overallScore = Math.round(totalScore); // Raw sum for now
 
     const readingResult = new ReadingResult({
       user: userId,
       readingId,
       overallScore,
-      scores: detailedScores,
+      scores: detailedScores, // Schema expects 'scores' with specific fields, ensured above
     });
 
     await readingResult.save();
@@ -172,6 +257,7 @@ export const calculateReadingResult = async (req, res) => {
       data: readingResult,
     });
   } catch (error) {
+    console.error("Reading Calc Error:", error);
     res.status(500).json({
       success: false,
       message: error.message,

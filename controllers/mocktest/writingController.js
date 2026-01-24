@@ -190,7 +190,9 @@ export const submitFullWritingMockTest = async (req, res) => {
         writingScore: scoreDetails.writingScore,
         contentScore: scoreDetails.content,
         grammarScore: scoreDetails.grammar,
-        answerText: userText || "No response"
+        answerText: userText || "No response",
+        score: scoreDetails.writingScore,
+        maxScore: 90
       });
 
       cumulativeWritingScore += scoreDetails.writingScore;

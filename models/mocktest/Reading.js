@@ -68,11 +68,15 @@ const ReadingResultSchema = new mongoose.Schema({
   overallScore: Number,
   scores: [
     {
+      questionId: { type: mongoose.Schema.Types.ObjectId }, // Added
       questionType: String,
-      contentScore: Number,
+      userAnswer: mongoose.Schema.Types.Mixed, // Added
+      score: Number, // General score
+      maxScore: Number, // Added
+      contentScore: Number, // Kept for backward compat if needed
       fluencyScore: Number,
       pronunciationScore: Number,
-      audioUrl: String // Path to their recorded answer
+      audioUrl: String
     }
   ],
   createdAt: { type: Date, default: Date.now }

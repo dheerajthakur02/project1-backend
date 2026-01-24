@@ -153,53 +153,81 @@ export const calculateSpeakingResult = async (req, res) => {
 
     const testData = await Speaking.findById(speakingTestId)
       .populate("readAloudQuestions")
-      .populate("repeatSentenceQuestions");
+      .populate("repeatSentenceQuestions")
+      .populate("describeImageQuestions")
+      .populate("reTellLectureQuestions")
+      .populate("summarizeSpokenTextQuestions")
+      .populate("highlightIncorrectWordsQuestions");
+
+    if (!testData) {
+        return res.status(404).json({ success: false, message: "Speaking Test not found" });
+    }
 
     let totalContent = 0;
     let totalFluency = 0;
     let totalPronunciation = 0;
-    let questionCount = answers.length;
+    let questionCount = Array.isArray(answers) ? answers.length : 0;
 
-    const detailedAnalysis = answers.map((answer) => {
+    const scores = Array.isArray(answers) ? answers.map((answer) => {
       // Find the original question text for comparison
-      // This is a simplified search across the arrays
-      const question = [...testData.readAloudQuestions, ...testData.repeatSentenceQuestions]
-        .find(q => q._id.toString() === answer.questionId);
+      // Safe gathering of all questions
+      const allQuestions = [
+          ...(testData.readAloudQuestions || []),
+          ...(testData.repeatSentenceQuestions || []),
+          ...(testData.describeImageQuestions || []), // Added missing ones
+          ...(testData.reTellLectureQuestions || []), // Added missing ones
+          ...(testData.summarizeSpokenTextQuestions || []) // Added missing ones
+      ];
 
-      const originalText = question ? (question.text || question.content) : "";
+      const question = allQuestions.find(q => q && q._id.toString() === answer.questionId);
+
+      const originalText = question ? (question.text || question.content || "") : "";
       
       // Calculate Content Accuracy (0-90 scale)
-      // compareStrings checks word match percentage
-      const contentScore = compareStrings(originalText, answer.transcript);
+      let contentScore = 0;
+      try {
+         contentScore = compareStrings(originalText, answer.transcript);
+      } catch (e) {
+         console.error("Scoring error:", e);
+      }
 
-      // AI Logic Simulation: Fluency & Pronunciation 
-      // In a real app, these come from your Speech-to-Text AI confidence scores
+      // AI Logic Simulation
       const fluencyScore = Math.floor(Math.random() * (90 - 60) + 60); 
       const pronunciationScore = Math.floor(Math.random() * (90 - 55) + 55);
 
+       // 0-90 scale
+      const itemScore = Math.round((contentScore + fluencyScore + pronunciationScore) / 3);
+      
       totalContent += contentScore;
       totalFluency += fluencyScore;
       totalPronunciation += pronunciationScore;
 
       return {
         questionId: answer.questionId,
-        type: answer.type,
-        score: Math.round((contentScore + fluencyScore + pronunciationScore) / 3),
-        userTranscript: answer.transcript,
+        questionType: answer.type,
+        score: itemScore,
+        maxScore: 90, // PTE items are roughly 90 max
+        contentScore,
+        fluencyScore,
+        pronunciationScore,
+        userTranscript: answer.transcript || "",
         audioUrl: answer.audioUrl
       };
-    });
+    }) : [];
+
+    // Avoid division by zero
+    const safeCount = questionCount > 0 ? questionCount : 1; 
 
     const finalResult = new SpeakingResult({
       user: userId,
       speakingTestId,
-      overallScore: Math.round((totalContent + totalFluency + totalPronunciation) / (questionCount * 3)),
+      overallScore: questionCount > 0 ? Math.round((totalContent + totalFluency + totalPronunciation) / (questionCount * 3)) : 0,
       sectionScores: {
-        content: Math.round(totalContent / questionCount),
-        fluency: Math.round(totalFluency / questionCount),
-        pronunciation: Math.round(totalPronunciation / questionCount)
+        content: questionCount > 0 ? Math.round(totalContent / questionCount) : 0,
+        fluency: questionCount > 0 ? Math.round(totalFluency / questionCount) : 0,
+        pronunciation: questionCount > 0 ? Math.round(totalPronunciation / questionCount) : 0
       },
-      detailedAnalysis
+      scores: scores 
     });
 
     await finalResult.save();
@@ -209,6 +237,7 @@ export const calculateSpeakingResult = async (req, res) => {
       data: finalResult
     });
   } catch (error) {
+    console.error("Speaking Calc Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

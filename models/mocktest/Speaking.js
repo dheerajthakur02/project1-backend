@@ -62,15 +62,24 @@ SpeakingSchema.pre("save", function (next) {
 
 const SpeakingResultSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  speakingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Speaking' },
+  speakingTestId: { type: mongoose.Schema.Types.ObjectId, ref: 'Speaking' },
   overallScore: Number,
+  sectionScores: {
+    content: Number,
+    fluency: Number,
+    pronunciation: Number
+  },
   scores: [
     {
+      questionId: { type: mongoose.Schema.Types.ObjectId },
       questionType: String,
+      userTranscript: String,
+      score: Number,
+      maxScore: Number,
       contentScore: Number,
       fluencyScore: Number,
       pronunciationScore: Number,
-      audioUrl: String // Path to their recorded answer
+      audioUrl: String
     }
   ],
   createdAt: { type: Date, default: Date.now }
