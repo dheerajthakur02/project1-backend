@@ -1,0 +1,207 @@
+import mongoose from "mongoose";
+
+import RETELL from "../../../models/mocktest/QuestionTests/ReTell.js";
+import { RetellLectureQuestion } from "../../../models/retell.model.js";
+
+/* ===================== CREATE RETELL ===================== */
+export const createReTell = async (req, res) => {
+  try {
+    const { title, reTellQuestions = [] } = req.body;
+
+    // 1️⃣ Title check
+    if (!title) {
+      return res.status(400).json({
+        success: false,
+        message: "Title is required",
+      });
+    }
+
+    // 2️⃣ Max 5 questions
+    if (reTellQuestions.length > 5) {
+      return res.status(400).json({
+        success: false,
+        message: "Re-tell Lecture section cannot have more than 5 questions",
+      });
+    }
+
+    // 3️⃣ Validate ObjectIds
+    const invalidIds = reTellQuestions.filter(
+      (id) => !mongoose.Types.ObjectId.isValid(id)
+    );
+
+    if (invalidIds.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ReTellQuestion IDs found",
+        invalidIds,
+      });
+    }
+
+    // 4️⃣ Remove duplicates
+    const uniqueQuestionIds = [...new Set(reTellQuestions.map(String))];
+
+    // 5️⃣ Check questions exist
+    const existingQuestions = await RetellLectureQuestion.find({
+      _id: { $in: uniqueQuestionIds },
+    }).select("_id");
+
+    if (existingQuestions.length !== uniqueQuestionIds.length) {
+      const existingIds = existingQuestions.map((q) => q._id.toString());
+      const missingIds = uniqueQuestionIds.filter(
+        (id) => !existingIds.includes(id)
+      );
+
+      return res.status(400).json({
+        success: false,
+        message: "Some ReTellLecture questions do not exist",
+        missingIds,
+      });
+    }
+
+    // 🔥 6️⃣ Ensure question not already used in another RETELL
+    const alreadyUsedReTell = await RETELL.findOne({
+      reTellQuestions: { $in: uniqueQuestionIds },
+    }).select("reTellQuestions title");
+
+    if (alreadyUsedReTell) {
+      const usedIds = alreadyUsedReTell.reTellQuestions.map(String);
+
+      const conflictedIds = uniqueQuestionIds.filter((id) =>
+        usedIds.includes(id)
+      );
+
+      return res.status(400).json({
+        success: false,
+        message:
+          "One or more Re-tell Lecture questions are already used in another section",
+        conflictedIds,
+        usedInReTellTitle: alreadyUsedReTell.title,
+      });
+    }
+
+    // 7️⃣ Create RETELL
+    const retell = new RETELL({
+      title,
+      reTellQuestions: uniqueQuestionIds,
+    });
+
+    await retell.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Re-tell Lecture section created successfully",
+      data: retell,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* ===================== GET ALL RETELL ===================== */
+export const getAllReTell = async (req, res) => {
+  try {
+    const retellSections = await RETELL.find().sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: retellSections.length,
+      data: retellSections,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch Re-tell Lecture sections",
+    });
+  }
+};
+
+/* ===================== GET RETELL BY ID ===================== */
+export const getReTellById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const retellSection = await RETELL.findById(id).populate(
+      "reTellQuestions"
+    );
+
+    if (!retellSection) {
+      return res.status(404).json({
+        success: false,
+        message: "Re-tell Lecture section not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: retellSection,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch Re-tell Lecture section",
+    });
+  }
+};
+
+/* ===================== UPDATE RETELL ===================== */
+export const updateReTell = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const updatedReTell = await RETELL.findByIdAndUpdate(
+      id,
+      req.body,
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!updatedReTell) {
+      return res.status(404).json({
+        success: false,
+        message: "Re-tell Lecture section not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Re-tell Lecture section updated successfully",
+      data: updatedReTell,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* ===================== DELETE RETELL ===================== */
+export const deleteReTell = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const retell = await RETELL.findByIdAndDelete(id);
+
+    if (!retell) {
+      return res.status(404).json({
+        success: false,
+        message: "Re-tell Lecture section not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Re-tell Lecture section deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete Re-tell Lecture section",
+    });
+  }
+};

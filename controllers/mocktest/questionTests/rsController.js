@@ -1,0 +1,209 @@
+import RS from "../../../models/mocktest/QuestionTests/RS.js";
+import mongoose from "mongoose";
+import RepeatQuestion from "../../../models/repeat.model.js";
+/* ===================== CREATE RL ===================== */
+
+
+export const createRS = async (req, res) => {
+  try {
+    const { title, repeatSentenceQuestions = [] } = req.body;
+
+    // 1️⃣ Title check
+    if (!title) {
+      return res.status(400).json({
+        success: false,
+        message: "Title is required",
+      });
+    }
+
+    // 2️⃣ Max 5 questions
+    if (repeatSentenceQuestions.length > 5) {
+      return res.status(400).json({
+        success: false,
+        message: "Repeat Sentence section cannot have more than 5 questions",
+      });
+    }
+
+    // 3️⃣ Validate ObjectIds
+    const invalidIds = repeatSentenceQuestions.filter(
+      (id) => !mongoose.Types.ObjectId.isValid(id)
+    );
+
+    if (invalidIds.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid RepeatQuestion IDs found",
+        invalidIds,
+      });
+    }
+
+    // 4️⃣ Remove duplicates from request
+    const uniqueQuestionIds = [
+      ...new Set(repeatSentenceQuestions.map(String)),
+    ];
+
+    // 5️⃣ Check RepeatQuestions exist
+    const existingQuestions = await RepeatQuestion.find({
+      _id: { $in: uniqueQuestionIds },
+    }).select("_id");
+
+    if (existingQuestions.length !== uniqueQuestionIds.length) {
+      const existingIds = existingQuestions.map((q) => q._id.toString());
+      const missingIds = uniqueQuestionIds.filter(
+        (id) => !existingIds.includes(id)
+      );
+
+      return res.status(400).json({
+        success: false,
+        message: "Some RepeatQuestions do not exist",
+        missingIds,
+      });
+    }
+
+    // 🔥 6️⃣ Check if RepeatQuestions already used in another RS
+    const alreadyUsedRS = await RS.findOne({
+      repeatSentenceQuestions: { $in: uniqueQuestionIds },
+    }).select("repeatSentenceQuestions title");
+
+    if (alreadyUsedRS) {
+      const usedIds = alreadyUsedRS.repeatSentenceQuestions.map(String);
+
+      const conflictedIds = uniqueQuestionIds.filter((id) =>
+        usedIds.includes(id)
+      );
+
+      return res.status(400).json({
+        success: false,
+        message:
+          "One or more RepeatQuestions are already used in another RS section",
+        conflictedIds,
+        usedInRSTitle: alreadyUsedRS.title,
+      });
+    }
+
+    // 7️⃣ Create RS
+    const rs = new RS({
+      title,
+      repeatSentenceQuestions: uniqueQuestionIds,
+    });
+
+    await rs.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Repeat Sentence section created successfully",
+      data: rs,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
+/* ===================== GET ALL RL ===================== */
+export const getAllRS = async (req, res) => {
+  try {
+    const rsSections = await RS.find().sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: rsSections.length,
+      data: rsSections,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch Read Aloud sections",
+    });
+  }
+};
+
+/* ===================== GET RL BY ID ===================== */
+export const getRSById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const rsSection = await RS.findById(id)
+      .populate("repeatSentenceQuestions");
+
+    if (!rsSection) {
+      return res.status(404).json({
+        success: false,
+        message: "Read Aloud section not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: rsSection,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch Read Aloud section",
+    });
+  }
+};
+
+/* ===================== UPDATE RL ===================== */
+export const updateRS = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const updatedRS = await RS.findByIdAndUpdate(
+      id,
+      req.body,
+      {
+        new: true,
+        runValidators: true, // 🔒 important
+      }
+    );
+
+    if (!updatedRS) {
+      return res.status(404).json({
+        success: false,
+        message: "Read Aloud section not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Read Aloud section updated successfully",
+      data: updatedRS,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* ===================== DELETE RL (OPTIONAL) ===================== */
+export const deleteRS = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const rs = await RS.findByIdAndDelete(id);
+
+    if (!rs) {
+      return res.status(404).json({
+        success: false,
+        message: "Read Aloud section not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Read Aloud section deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete Read Aloud section",
+    });
+  }
+};
