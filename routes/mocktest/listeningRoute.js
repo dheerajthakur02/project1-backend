@@ -10,6 +10,8 @@ import { createListening,
   getListeningResultById
 } from "../../controllers/mocktest/listeningController.js";
 
+import { authorize } from "../../middlewares/authMiddleware.js";
+
 const router = express.Router();
 
 /* Listening */
@@ -20,7 +22,7 @@ router.put("/:id", updateListening);
 router.delete("/:id", deleteListening); 
 /* Results */
 router.post("/result", submitListeningResult);
-router.get("/result/my",  getMyListeningResults);
+router.get("/result/my", authorize(), getMyListeningResults);
 router.get("/result/test/:listeningId", getResultsByListeningId);
 router.get("/result/:id", getListeningResultById);
 

@@ -264,3 +264,42 @@ export const calculateReadingResult = async (req, res) => {
     });
   }
 };
+
+/**
+ * ✅ GET USER READING RESULTS
+ */
+export const getUserReadingResults = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const results = await ReadingResult.find({ user: userId })
+      .populate("readingId", "title")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: results.length,
+      data: results,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/**
+ * ✅ GET READING RESULT BY ID
+ */
+export const getReadingResultById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await ReadingResult.findById(id).populate("readingId");
+
+    if (!result) return res.status(404).json({ success: false, message: "Result not found" });
+
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

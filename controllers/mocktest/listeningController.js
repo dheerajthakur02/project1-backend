@@ -246,7 +246,8 @@ export const submitListeningResult = async (req, res) => {
 
 export const getMyListeningResults = async (req, res) => {
   try {
-    const results = await ListeningResult.find({ user: req.user._id })
+    const userId = req.user._id || req.user.id;
+    const results = await ListeningResult.find({ user: userId })
       .populate("listeningId", "title")
       .sort({ createdAt: -1 });
 

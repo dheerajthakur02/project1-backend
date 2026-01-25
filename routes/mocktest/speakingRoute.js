@@ -1,5 +1,8 @@
 import express from "express";
-import { calculateSpeakingResult, createSpeaking, getAllSpeaking, getSpeakingById, updateSpeaking } from "../../controllers/mocktest/speakingController.js";
+import { calculateSpeakingResult, createSpeaking, getAllSpeaking, getSpeakingById, updateSpeaking, getUserSpeakingResults, getSpeakingResultById } from "../../controllers/mocktest/speakingController.js";
+import { authorize } from "../../middlewares/authMiddleware.js";
+
+
 
 const router = express.Router();
 router.post("/", createSpeaking);
@@ -8,5 +11,9 @@ router.get("/:id", getSpeakingById);
 router.put("/:id", updateSpeaking);
 
 router.post("/calculate-result", calculateSpeakingResult);
+router.get("/results/my", authorize(), getUserSpeakingResults);
+router.get("/result/:id", getSpeakingResultById);
+
+
 
 export default router;
