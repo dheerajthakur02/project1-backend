@@ -598,3 +598,23 @@ export const submitFullMockTest = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const getUserFullMockTestResults = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const results = await FullMockTestResult.find({ user: userId })
+      .populate("fullMockTestId", "title")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: results.length,
+      data: results,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

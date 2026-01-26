@@ -5,7 +5,12 @@ import {
   getReadingById,
   updateReading,
   calculateReadingResult,
+  getUserReadingResults,
+  getReadingResultById
 } from "../../controllers/mocktest/readingController.js"
+import { authorize } from "../../middlewares/authMiddleware.js";
+
+
 
 const router = express.Router();
 
@@ -29,5 +34,13 @@ router.put("/:id", updateReading);
 
 // 🧮 Calculate & Save Reading Result
 router.post("/result/calculate", calculateReadingResult);
+
+// 📜 Get User Reading Results
+router.get("/results/my", authorize(), getUserReadingResults);
+
+// 🔍 Get Specific Reading Result
+router.get("/result/:id", getReadingResultById);
+
+
 
 export default router;
