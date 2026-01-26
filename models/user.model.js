@@ -66,6 +66,10 @@ userSchema.add({
     type: Number,
     default: 0,
   },
+  vouchersOwned: {
+    type: Number,
+    default: 0,
+  },
 });
 
 userSchema.pre("save", async function () {

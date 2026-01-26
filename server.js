@@ -136,6 +136,15 @@ app.use("/api/write-from-dictation", writeFromDictationRoutes);
 import paymentRoutes from "./routes/paymentRoutes.js";
 app.use("/api/payment", paymentRoutes);
 
+import voucherRoutes from "./routes/voucherRoutes.js";
+app.use("/api/voucher", voucherRoutes);
+
+import dashboardRoutes from "./routes/dashboardRoutes.js";
+app.use("/api/dashboard", dashboardRoutes);
+
+import videoRoutes from "./routes/videoRoutes.js";
+app.use("/api/videos", videoRoutes);
+
 app.use("/hello", (req, res) => {
   res.send("Hello from the server!");
 });
