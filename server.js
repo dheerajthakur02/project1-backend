@@ -39,8 +39,12 @@ connectDB();
 
 // Connect Cloudinary
 connectCloudinary();
+
+import bannerRoutes from "./routes/bannerRoutes.js";
+
 //api
 app.use("/api/auth", authRoutes);
+app.use("/api/banner", bannerRoutes);
 app.use("/api/read-aloud", readAloudRoutes);
 app.use("/api/attempts", attemptRoutes);
 
