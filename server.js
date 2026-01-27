@@ -83,8 +83,26 @@ import ReTellRoutes from "./routes/mocktest/questionRoutes/reTellRoutes.js"
 import sstGroupRoutes from "./routes/mocktest/questionRoutes/sstGroupRoutes.js"
 import hiwRoutes from "./routes/mocktest/questionRoutes/hiwRoutes.js"
 import sgdRoutes from "./routes/mocktest/questionRoutes/sgdRoutes.js"
+import weRoutes from "./routes/mocktest/questionRoutes/weRoutes.js"
+import wfdRoutes from "./routes/mocktest/questionRoutes/wfdRoutes.js"
+import swtRoutes from "./routes/mocktest/questionRoutes/swtRoutes.js"
+import fibRoutes from "./routes/mocktest/questionRoutes/fibRoutes.js"
+import fibdRoutes from "./routes/mocktest/questionRoutes/fibd&dRoutes.js"
+import roRoutes from "./routes/mocktest/questionRoutes/roRoutes.js"
+// import rtsRoutes from "./routes/mocktest/questionRoutes/rtsRoutes.js"
+// import fiblRoutes from "./routes/mocktest/questionRoutes/fiblRoutes.js"
 
 
+
+
+// app.use("/api/question/fibl", fiblRoutes);
+// app.use("/api/question/rts", rtsRoutes);
+app.use("/api/question/ro", roRoutes);
+app.use("/api/question/fibd", fibdRoutes);
+app.use("/api/question/fib", fibRoutes);
+app.use("/api/question/swt", swtRoutes);
+app.use("/api/question/wfd", wfdRoutes);
+app.use("/api/question/we", weRoutes);
 app.use("/api/question/ra", RLRoutes);
 app.use("/api/question/di", DIRoutes)
 app.use("/api/question/rs", RSRoutes)

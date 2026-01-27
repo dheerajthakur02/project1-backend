@@ -1,14 +1,21 @@
 import mongoose from "mongoose";
 
-const FIBRWSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  questions: [{ type: mongoose.Schema.Types.ObjectId, ref: "FIBRWQuestion" }],
-  createdAt: { type: Date, default: Date.now }
-});
+const FIBRWSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true },
+    fibQuestions: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "ReadingFIBDropdown" },
+    ],
+  },
+  { timestamps: true }
+);
 
-FIBRWSchema.pre("save", function (next) {
-  if (this.questions.length > 5) return next(new Error("Max 5 questions"));
-  next();
+// 🔒 Max 5 questions
+FIBRWSchema.pre("save", function () {
+  if (this.fibQuestions.length > 5) {
+    return next(new Error("FIB RW cannot exceed 5 questions"));
+  }
+
 });
 
 export default mongoose.model("FIBRW", FIBRWSchema);
