@@ -37,7 +37,7 @@ export const WriteEssayQuestion = mongoose.model(
 
 
 const EssayAttemptSchema = new mongoose.Schema({
-  questionId: { type: mongoose.Schema.Types.ObjectId, ref: "EssayQuestion", required: true },
+  questionId: { type: mongoose.Schema.Types.ObjectId, ref: "WriteEssayQuestion", required: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   essayText: { type: String, required: true },
   wordCount: { type: Number, required: true },

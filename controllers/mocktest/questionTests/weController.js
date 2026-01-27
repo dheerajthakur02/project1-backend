@@ -1,7 +1,8 @@
-import { ImageQuestion } from "../../../models/image.model.js";
-import DI from "../../../models/mocktest/QuestionTests/DI.js";
+import { WriteEssayQuestion } from "../../../models/writing/Essay.js";
+import { WE} from "../../../models/mocktest/QuestionTests/WE.js"
 import mongoose from "mongoose";
 
+/* ===================== CREATE WE ===================== */
 export const createWE = async (req, res) => {
   try {
     const { title, essayQuestions = [] } = req.body;
@@ -14,11 +15,11 @@ export const createWE = async (req, res) => {
       });
     }
 
-    // 2️⃣ Max 5 questions
-    if (essayQuestions.length > 5) {
+    // 2️⃣ Max 2 questions
+    if (essayQuestions.length > 2) {
       return res.status(400).json({
         success: false,
-        message: "Write Essay section cannot have more than 5 questions",
+        message: "Write Essay section cannot have more than 2 questions",
       });
     }
 
@@ -30,18 +31,16 @@ export const createWE = async (req, res) => {
     if (invalidIds.length > 0) {
       return res.status(400).json({
         success: false,
-        message: "Invalid ImageQuestion IDs found",
+        message: "Invalid EssayQuestion IDs found",
         invalidIds,
       });
     }
 
-    // 4️⃣ Remove duplicates in request itself
-    const uniqueQuestionIds = [
-      ...new Set(essayQuestions.map(String)),
-    ];
+    // 4️⃣ Remove duplicates
+    const uniqueQuestionIds = [...new Set(essayQuestions.map(String))];
 
-    // 5️⃣ Check ImageQuestions exist
-    const existingQuestions = await WE.find({
+    // 5️⃣ Check EssayQuestions exist
+    const existingQuestions = await WriteEssayQuestion.find({
       _id: { $in: uniqueQuestionIds },
     }).select("_id");
 
@@ -53,18 +52,18 @@ export const createWE = async (req, res) => {
 
       return res.status(400).json({
         success: false,
-        message: "Some Write Essay do not exist",
+        message: "Some EssayQuestions do not exist",
         missingIds,
       });
     }
 
-    // 🔥 6️⃣ IMPORTANT: Check if ImageQuestions already used in any DI
-    const alreadyUsedDI = await DI.findOne({
+    // 6️⃣ Check if EssayQuestions already used in another WE
+    const alreadyUsedWE = await WE.findOne({
       essayQuestions: { $in: uniqueQuestionIds },
     }).select("essayQuestions title");
 
-    if (alreadyUsedDI) {
-      const usedIds = alreadyUsedDI.essayQuestions.map(String);
+    if (alreadyUsedWE) {
+      const usedIds = alreadyUsedWE.essayQuestions.map(String);
 
       const conflictedIds = uniqueQuestionIds.filter((id) =>
         usedIds.includes(id)
@@ -73,24 +72,24 @@ export const createWE = async (req, res) => {
       return res.status(400).json({
         success: false,
         message:
-          "One or more ImageQuestions are already used in another DI section",
+          "One or more EssayQuestions are already used in another Write Essay section",
         conflictedIds,
-        usedInDITitle: alreadyUsedDI.title,
+        usedInWETitle: alreadyUsedWE.title,
       });
     }
 
-    // 7️⃣ Create DI
-    const di = new DI({
+    // 7️⃣ Create WE
+    const we = new WE({
       title,
       essayQuestions: uniqueQuestionIds,
     });
 
-    await di.save();
+    await we.save();
 
     res.status(201).json({
       success: true,
-      message: "Describe Image section created successfully",
-      data: di,
+      message: "Write Essay section created successfully",
+      data: we,
     });
   } catch (error) {
     res.status(500).json({
@@ -100,8 +99,7 @@ export const createWE = async (req, res) => {
   }
 };
 
-
-/* ===================== GET ALL DI ===================== */
+/* ===================== GET ALL WE ===================== */
 export const getAllWE = async (req, res) => {
   try {
     const WESections = await WE.find().sort({ createdAt: -1 });
@@ -114,63 +112,62 @@ export const getAllWE = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Failed to fetch Describe Image sections",
+      message: "Failed to fetch Write Essay sections",
     });
   }
 };
 
-/* ===================== GET DI BY ID ===================== */
-export const getDIById = async (req, res) => {
+/* ===================== GET WE BY ID ===================== */
+export const getWEById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const DISection = await DI.findById(id)
-      .populate("describeImageQuestions");
+    const WESection = await WE.findById(id).populate("essayQuestions");
 
-    if (!DISection) {
+    if (!WESection) {
       return res.status(404).json({
         success: false,
-        message: "Describe Image section not found",
+        message: "Write Essay section not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: DISection,
+      data: WESection,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Failed to fetch Describe Image section",
+      message: "Failed to fetch Write Essay section",
     });
   }
 };
 
-/* ===================== UPDATE DI ===================== */
-export const updateDI = async (req, res) => {
+/* ===================== UPDATE WE ===================== */
+export const updateWE = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const updatedDI = await DI.findByIdAndUpdate(
+    const updatedWE = await WE.findByIdAndUpdate(
       id,
       req.body,
       {
         new: true,
-        runValidators: true, // 🔒 important
+        runValidators: true,
       }
     );
 
-    if (!updatedDI) {
+    if (!updatedWE) {
       return res.status(404).json({
         success: false,
-        message: "Describe Image section not found",
+        message: "Write Essay section not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      message: "Describe Image section updated successfully",
-      data: updatedDI,
+      message: "Write Essay section updated successfully",
+      data: updatedWE,
     });
   } catch (error) {
     res.status(400).json({
@@ -180,28 +177,28 @@ export const updateDI = async (req, res) => {
   }
 };
 
-/* ===================== DELETE DI (OPTIONAL) ===================== */
-export const deleteDI = async (req, res) => {
+/* ===================== DELETE WE ===================== */
+export const deleteWE = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const di = await DI.findByIdAndDelete(id);
+    const we = await WE.findByIdAndDelete(id);
 
-    if (!di) {
+    if (!we) {
       return res.status(404).json({
         success: false,
-        message: "Describe Image section not found",
+        message: "Write Essay section not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      message: "Describe Image section deleted successfully",
+      message: "Write Essay section deleted successfully",
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Failed to delete Describe Image section",
+      message: "Failed to delete Write Essay section",
     });
   }
 };

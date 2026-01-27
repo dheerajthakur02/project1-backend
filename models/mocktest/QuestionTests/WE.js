@@ -5,21 +5,18 @@ const WESchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
     essayQuestions: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "EssayQuestion" },
+      { type: mongoose.Schema.Types.ObjectId, ref: "WriteEssayQuestion" },
     ],
   },
   { timestamps: true }
 );
 
-WESchema.pre("save", function (next) {
-  if (this.essayQuestions.length > 2) {
+WESchema.pre("save", function () {
+  if (this.essayQuestions.length > 1) {
     return next(new Error("Write Essay cannot exceed 2 questions"));
   }
-  next();
+
 });
-
-
-
 
 const WEResultSchema = new mongoose.Schema(
   {
@@ -39,5 +36,6 @@ const WEResultSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const WE = mongoose.model("WE", WESchema);
-const WEResult =  mongoose.model("WEResult", WEResultSchema);
+// ✅ NAMED EXPORTS
+export const WE = mongoose.model("WE", WESchema);
+export const WEResult = mongoose.model("WEResult", WEResultSchema);
