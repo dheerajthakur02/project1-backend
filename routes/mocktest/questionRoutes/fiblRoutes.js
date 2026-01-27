@@ -5,7 +5,7 @@ import {
   getFIBLById,
   updateFIBL,
   deleteFIBL,
-} from "../../../controllers/mocktest/questionTests/fibl.controller.js";
+} from "../../../controllers/mocktest/questionTests/fiblController.js";
 
 const router = express.Router();
 

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
-import FIBL from "../../../models/mocktest/QuestionTests/FIBL.js";
-import { FIBLQuestion } from "../../../models/fibl.model.js";
+import FIBL from "../../../models/mocktest/QuestionTests/FIB&L.js";
+import { ListeningFIBQuestion } from "../../../models/listening/ListeningFIBQuestion.js";
 
 export const createFIBL = async (req, res) => {
   try {
@@ -23,7 +23,7 @@ export const createFIBL = async (req, res) => {
 
     const uniqueIds = [...new Set(fiblQuestions.map(String))];
 
-    const existing = await FIBLQuestion.find({
+    const existing = await ListeningFIBQuestion.find({
       _id: { $in: uniqueIds },
     });
 

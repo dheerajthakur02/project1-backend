@@ -89,14 +89,14 @@ import swtRoutes from "./routes/mocktest/questionRoutes/swtRoutes.js"
 import fibRoutes from "./routes/mocktest/questionRoutes/fibRoutes.js"
 import fibdRoutes from "./routes/mocktest/questionRoutes/fibd&dRoutes.js"
 import roRoutes from "./routes/mocktest/questionRoutes/roRoutes.js"
-// import rtsRoutes from "./routes/mocktest/questionRoutes/rtsRoutes.js"
-// import fiblRoutes from "./routes/mocktest/questionRoutes/fiblRoutes.js"
+import rtsRoutes from "./routes/mocktest/questionRoutes/rtsRoutes.js"
+ import fiblRoutes from "./routes/mocktest/questionRoutes/fiblRoutes.js"
 
 
 
 
-// app.use("/api/question/fibl", fiblRoutes);
-// app.use("/api/question/rts", rtsRoutes);
+ app.use("/api/question/fibl", fiblRoutes);
+app.use("/api/question/rts", rtsRoutes);
 app.use("/api/question/ro", roRoutes);
 app.use("/api/question/fibd", fibdRoutes);
 app.use("/api/question/fib", fibRoutes);

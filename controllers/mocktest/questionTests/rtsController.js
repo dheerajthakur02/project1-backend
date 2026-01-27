@@ -1,35 +1,70 @@
 import mongoose from "mongoose";
 import RTS from "../../../models/mocktest/QuestionTests/RTS.js";
-import { RTSQuestion } from "../../../models/rts.model.js";
+import { RespondSituationQuestion } from "../../../models/respondSituation.model.js";
 
 export const createRTS = async (req, res) => {
   try {
     const { title, rtsQuestions = [] } = req.body;
 
-    if (!title)
-      return res.status(400).json({ message: "Title required" });
+    // ✅ Validate title
+    if (!title) {
+      return res.status(400).json({ success: false, message: "Title is required" });
+    }
 
-    if (rtsQuestions.length > 3)
-      return res.status(400).json({ message: "Max 3 questions allowed" });
+    // ✅ Max 3 questions allowed
+    if (rtsQuestions.length > 3) {
+      return res.status(400).json({
+        success: false,
+        message: "RTS cannot have more than 3 questions",
+      });
+    }
 
+    // ✅ Validate ObjectIds
+    const invalidIds = rtsQuestions.filter((id) => !mongoose.Types.ObjectId.isValid(id));
+    if (invalidIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid RespondSituationQuestion IDs",
+        invalidIds,
+      });
+    }
+
+    // ✅ Remove duplicates
     const uniqueIds = [...new Set(rtsQuestions.map(String))];
 
-    const used = await RTS.findOne({
-      rtsQuestions: { $in: uniqueIds },
-    });
-
-    if (used)
+    // ✅ Check if questions exist in DB
+    const existingQuestions = await RespondSituationQuestion.find({ _id: { $in: uniqueIds } }).select("_id");
+    if (existingQuestions.length !== uniqueIds.length) {
       return res.status(400).json({
-        message: "Question already used",
-        usedIn: used.title,
+        success: false,
+        message: "Some RTS questions do not exist",
       });
+    }
 
-    const rts = await RTS.create({ title, rtsQuestions: uniqueIds });
-    res.status(201).json({ success: true, data: rts });
-  } catch (e) {
-    res.status(500).json({ message: e.message });
+    // 🔥 Prevent reuse
+    const alreadyUsed = await RTS.findOne({ rtsQuestions: { $in: uniqueIds } });
+    if (alreadyUsed) {
+      return res.status(400).json({
+        success: false,
+        message: "One or more questions already used in another RTS section",
+        usedInTitle: alreadyUsed.title,
+      });
+    }
+
+    // ✅ Create RTS
+    const rts = new RTS({ title, rtsQuestions: uniqueIds });
+    await rts.save();
+
+    res.status(201).json({
+      success: true,
+      message: "RTS section created successfully",
+      data: rts,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 export const getAllRTS = async (req, res) =>
   res.json({ data: await RTS.find() });
