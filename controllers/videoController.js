@@ -37,3 +37,14 @@ export const addVideo = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// Delete a video
+export const deleteVideo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await VideoResource.findByIdAndDelete(id);
+    res.status(200).json({ success: true, message: "Video deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to delete video" });
+  }
+};

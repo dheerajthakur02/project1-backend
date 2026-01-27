@@ -21,8 +21,8 @@ const videoResourceSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ["Latest Update", "Guide", "Tip", "Other"],
-      default: "Other",
+      enum: ["Speaking", "Writing", "Reading", "Listening", "General", "Latest Update", "Guide", "Tip", "Other"],
+      default: "General",
     },
     isFeatured: {
       type: Boolean,

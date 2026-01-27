@@ -127,3 +127,15 @@ export const getVoucherHistory = async (req, res) => {
     });
   }
 };
+
+// ✅ Get All Voucher Orders (Admin)
+export const getAllVoucherOrders = async (req, res) => {
+  try {
+    const orders = await VoucherOrder.find()
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: orders });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to fetch voucher orders" });
+  }
+};

@@ -2,7 +2,7 @@ import express from "express";
 import { upload } from "../middlewares/upload.js";
 import {
   addQuestion,
-
+  getAllQuestions,
   updateQuestion,
   deleteQuestion,
   getQuestionsWithAttempts,
@@ -14,6 +14,7 @@ const router = express.Router();
 
 // router.use(authorize());
 router.post("/add", upload.single("audio"), addQuestion);
+router.get("/all", getAllQuestions);
 router.get("/get/:userId", getQuestionsWithAttempts);
 router.put("/:id", upload.single("audio"), updateQuestion);
 router.delete("/:id", deleteQuestion);

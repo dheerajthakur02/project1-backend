@@ -23,6 +23,15 @@ export const addQuestion = async (req, res) => {
   res.json(question);
 };
 
+export const getAllQuestions = async (req, res) => {
+  try {
+    const questions = await Question.find().sort({ createdAt: -1 });
+    res.json({ success: true, data: questions });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 
 export const getQuestionsWithAttempts = async (req, res) => {
 
