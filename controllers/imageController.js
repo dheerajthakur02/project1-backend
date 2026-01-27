@@ -1,9 +1,28 @@
 import { ImageQuestion, ImageAttempt } from "../models/image.model.js"
 import {cloudinary} from "../config/cloudinary.js";
 // 1. Add New Question
+// 1. Add New Question
 export const createQuestion = async (req, res) => {
     try {
-        const newQuestion = await ImageQuestion.create(req.body);
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: "Image file is required" });
+        }
+
+        const uploaded = await cloudinary.uploader.upload(req.file.path, {
+            folder: 'image-questions'
+        });
+
+        const newQuestion = await ImageQuestion.create({
+            title: req.body.title,
+            imageUrl: uploaded.secure_url,
+            cloudinaryId: uploaded.public_id,
+            difficulty: req.body.difficulty || 'Medium',
+            prepareTime: req.body.prepareTime || 35,
+            answerTime: req.body.answerTime || 40,
+            keywords: req.body.keywords || [],
+            modelAnswer: req.body.modelAnswer || ""
+        });
+
         res.status(201).json({ success: true, data: newQuestion });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
@@ -12,6 +31,16 @@ export const createQuestion = async (req, res) => {
 
 // 2. Get All Questions (with user's last attempt summary)
 import mongoose from "mongoose";
+
+// 2. Get All Questions (Admin)
+export const getAllQuestions = async (req, res) => {
+    try {
+        const questions = await ImageQuestion.find().sort({ createdAt: -1 });
+        res.status(200).json({ success: true, data: questions });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
 
 export const getImageQuestionsWithAttempts = async (req, res) => {
   try {
