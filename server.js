@@ -1,9 +1,17 @@
+import dns from "dns";
+dns.setServers(['8.8.8.8']);
+
+
+
 import express, { json } from "express"; // Restart Trigger
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import connectDB from "./db.js";
+
+
 dotenv.config();
+
 
 //import routes
 import authRoutes from "./routes/auth.route.js";
