@@ -13,54 +13,6 @@ dotenv.config();
 const deepgram = createClient(process.env.API_KEY);
 
 
-
-// exports.addRetellQuestion = async (req, res) => {
-//     try {
-//         const { title, difficulty } = req.body;
-//         const audioFile = req.file; // Provided by Multer
-
-//         if (!audioFile) {
-//             return res.status(400).json({ message: "Audio file is required" });
-//         }
-
-//         // 1. Upload Audio to Cloudinary
-//         const uploadResult = await cloudinary.uploader.upload(audioFile.path, {
-//             resource_type: "video", // Cloudinary treats audio as video resource type
-//             folder: "retell_questions"
-//         });
-
-//         // 2. Convert Audio to Transcript using OpenAI Whisper
-//         const transcription = await openai.audio.transcriptions.create({
-//             file: fs.createReadStream(audioFile.path),
-//             model: "whisper-1",
-//         });
-
-//         // 3. Save to Database
-//         const newQuestion = new Question({
-//             title,
-//             difficulty,
-//             audioUrl: uploadResult.secure_url,
-//             transcript: transcription.text,
-//             type: 'retell_lecture'
-//         });
-
-//         await newQuestion.save();
-
-//         // 4. Clean up local temp file
-//         fs.unlinkSync(audioFile.path);
-
-//         res.status(201).json({
-//             success: true,
-//             message: "Question added successfully with AI transcript",
-//             data: newQuestion
-//         });
-
-//     } catch (error) {
-//         console.error("Error adding question:", error);
-//         res.status(500).json({ success: false, message: error.message });
-//     }
-// };
-
 export const addRetellQuestion = async (req, res) => {
   try {
      const { title, prepareTime, answerTime, difficulty } = req.body;
@@ -188,7 +140,48 @@ export const updateRetellQuestion = async (req, res) => {
   }
 };
 
+export const deleteRetell = async (req, res) => {
+  try {
+    const { id } = req.params;
 
+    // Use a different variable name, e.g., deletedQuestion
+    const deletedQuestion = await RetellLectureQuestion.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      message: "Deleted successfully",
+      response: deletedQuestion,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+export const getRetellLectureById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const question = await RetellLectureQuestion.findById(id);
+
+    if (!question) {
+      return res.status(404).json({
+        success: false,
+        message: "Retell lecture not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: question,
+    });
+  } catch (error) {
+    console.error("Get by ID error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+}
 
 export const getRetellQuestionsWithAttempts = async (req, res) => {
   try {

@@ -10,6 +10,64 @@ export const createEssayQuestion = async (req, res) => {
   }
 };
 
+export const updateEssayQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const updatedQuestion = await WriteEssayQuestion.findByIdAndUpdate(
+      id,
+      { $set: req.body }, // update only provided fields
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedQuestion) {
+      return res.status(404).json({
+        success: false,
+        message: "Essay question not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      question: updatedQuestion,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
+export const deleteEssayQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const question = await WriteEssayQuestion.findByIdAndDelete(id);
+
+    if (!question) {
+      return res.status(404).json({
+        success: false,
+        message: "Essay question not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Essay question deleted successfully",
+      question,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 
 export const scoreEssay = ({ essayText, minWords = 200, maxWords = 300 }) => {
   const words = essayText.trim().split(/\s+/);

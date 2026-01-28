@@ -12,6 +12,71 @@ export const createSummarizeTextQuestion = async (req, res) => {
   }
 };
 
+export const updateSummarizeTextQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Find existing question
+    const question = await SummarizeTextQuestion.findById(id);
+
+    if (!question) {
+      return res.status(404).json({
+        success: false,
+        message: "Question not found",
+      });
+    }
+
+    // 2. Update only provided fields
+    Object.keys(req.body).forEach((key) => {
+      if (req.body[key] !== undefined) {
+        question[key] = req.body[key];
+      }
+    });
+
+    // 3. Save updated question
+    await question.save();
+
+    res.status(200).json({
+      success: true,
+      question,
+      message: "Summarize Text question updated successfully",
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
+export const deleteSummarizeTextQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const question = await SummarizeTextQuestion.findByIdAndDelete(id);
+
+    if (!question) {
+      return res.status(404).json({
+        success: false,
+        message: "Question not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Summarize Text question deleted successfully",
+      question,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
 
 export const  getSummarizeTextQuestionsWithAttempts = async (req, res) => {
