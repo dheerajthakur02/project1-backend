@@ -18,7 +18,7 @@ const shortAnswerQuestionSchema = new mongoose.Schema(
     },
     difficulty: {
       type: String,
-      enum: ["easy", "medium", "hard"],
+      enum: ["Easy", "Medium", "Hard"],
       default: "easy",
     },
     prepareTime: {

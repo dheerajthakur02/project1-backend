@@ -1,6 +1,6 @@
 import express from "express";
 import { upload } from "../middlewares/upload.js";
-import { addRetellQuestion, createRetellAttempt, getRetellQuestionsWithAttempts, updateRetellQuestion } from "../controllers/retellController.js";
+import { addRetellQuestion, createRetellAttempt, deleteRetell, getRetellLectureById, getRetellQuestionsWithAttempts, updateRetellQuestion } from "../controllers/retellController.js";
 import { authorize } from "../middlewares/authMiddleware.js";
 import { createRepeatAttempt } from "../controllers/attemptRepeat.controller.js";
 
@@ -10,7 +10,8 @@ const router = express.Router();
 router.post("/add", upload.single("audio"), addRetellQuestion);
 router.get("/get/:userId", getRetellQuestionsWithAttempts);
 router.put("/:id", upload.single("audio"), updateRetellQuestion);
-// router.delete("/:id", deleteQuestion);
+router.get("/:id", getRetellLectureById)
+ router.delete("/:id", deleteRetell);
 
 import { checkPracticeLimit } from "../middlewares/practiceLimitMiddleware.js";
 

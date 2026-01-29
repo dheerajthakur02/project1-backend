@@ -20,31 +20,31 @@ const deepgram = createClient(process.env.API_KEY);
 export const addRespondSituationQuestion = async (req, res) => {
   try {
     const { title, prepareTime, answerTime, difficulty, answer, keywords, modelAnswer } = req.body;
-console.log(req.body);
-    // if (!req.file) {
-    //   return res.status(400).json({ success: false, message: "Audio file is required" });
-    // }
 
-    // // Upload audio to Cloudinary
-    // const audio = await cloudinary.uploader.upload(req.file.path, { resource_type: "video" });
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Audio file is required" });
+    }
 
-    // Auto-transcription using Deepgram
-    // const audioBuffer = fs.readFileSync(req.file.path);
-    // const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
-    //   smart_format: true,
-    //   model: "nova-2",
-    //   language: "en-US",
-    // });
-    // if (error) throw error;
+    // Upload audio to Cloudinary
+    const audio = await cloudinary.uploader.upload(req.file.path, { resource_type: "video" });
 
-    // const transcript = result.results.channels[0].alternatives[0].transcript;
+   // Auto-transcription using Deepgram
+    const audioBuffer = fs.readFileSync(req.file.path);
+    const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
+      smart_format: true,
+      model: "nova-2",
+      language: "en-US",
+    });
+    if (error) throw error;
+
+    const transcript = result.results.channels[0].alternatives[0].transcript;
 
     // Save question
     const question = await RespondSituationQuestion.create({
       title,
-      audioUrl: "jk",
-      cloudinaryId: "kj",
-      transcript: "kj",
+      audioUrl: audio?.secure_url,
+      cloudinaryId: audio?.public_id,
+      transcript: transcript,
       prepareTime: prepareTime || 10,
       answerTime: answerTime || 40,
       difficulty: difficulty || "Medium",
@@ -198,6 +198,35 @@ export const getRespondSituationQuestionsWithAttempts = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const deleteRespondSituationQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const question = await RespondSituationQuestion.findById(id);
+    if (!question) {
+      return res.status(404).json({ message: "Question not found" });
+    }
+
+    // Remove audio from Cloudinary
+    if (question.cloudinaryId) {
+      await cloudinary.uploader.destroy(
+        question.cloudinaryId,
+        { resource_type: "video" }
+      );
+    }
+
+    await RespondSituationQuestion.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: "RTS question deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 
 /* ================================
    CREATE ATTEMPT

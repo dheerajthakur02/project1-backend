@@ -69,6 +69,64 @@ export const getQuestionById = async (req, res) => {
   }
 };
 
+// Update question by ID
+export const updateQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, text, blanks, difficulty, isPrediction } = req.body;
+
+    const question = await ReadingFIBDropdown.findById(id);
+    if (!question) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Question not found" });
+    }
+
+    // Update only provided fields
+    if (title !== undefined) question.title = title;
+    if (text !== undefined) question.text = text;
+    if (blanks !== undefined) question.blanks = blanks;
+    if (difficulty !== undefined) question.difficulty = difficulty;
+    if (isPrediction !== undefined) question.isPrediction = isPrediction;
+
+    await question.save();
+
+    res.status(200).json({
+      success: true,
+      data: question,
+      message: "Reading FIB Dropdown question updated successfully",
+    });
+  } catch (error) {
+    console.error("Update Question Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Delete question by ID
+export const deleteQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const question = await ReadingFIBDropdown.findById(id);
+    if (!question) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Question not found" });
+    }
+
+    await ReadingFIBDropdown.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: "Reading FIB Dropdown question deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete Question Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
 // Submit an attempt
 export const submitAttempt = async (req, res) => {
   try {

@@ -8,22 +8,50 @@ dotenv.config();
 const deepgram = createClient(process.env.API_KEY);
 
 // ---------- CREATE QUESTION ----------
+
+
 export const addChooseSingleAnswerQuestion = async (req, res) => {
   try {
-    const { options, difficulty } = req.body;
+    const { title, difficulty } = req.body;
+    let { options } = req.body;
 
+    // 1. Check if file exists
     if (!req.file) {
       return res.status(400).json({ success: false, message: "Audio is required" });
     }
 
-    if (!options || options.length !== 3) {
-      return res.status(400).json({ success: false, message: "Provide 3 options" });
+    // 2. Parse options (Multer sends arrays/objects as strings)
+    if (typeof options === "string") {
+      try {
+        options = JSON.parse(options);
+      } catch (e) {
+        return res.status(400).json({ success: false, message: "Invalid options format" });
+      }
     }
 
-    //Upload audio
-    const audio = await cloudinary.uploader.upload(req.file.path, { resource_type: "video" });
+    // 3. Validate options length and content
+    if (!options || !Array.isArray(options) || options.length < 2) {
+      return res.status(400).json({ success: false, message: "Provide at least 2 options" });
+    }
 
-    // Transcribe audio using Deepgram
+    // 4. Validate that exactly one option is marked as correct
+    const correctCount = options.filter(
+      (o) => String(o.isCorrect) === "true"
+    ).length;
+
+    if (correctCount !== 1) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Exactly one option must be marked as correct" 
+      });
+    }
+
+    // 5. Upload audio to Cloudinary
+    const audio = await cloudinary.uploader.upload(req.file.path, { 
+      resource_type: "video" 
+    });
+
+    // 6. Transcribe audio using Deepgram
     const audioBuffer = fs.readFileSync(req.file.path);
     const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
       smart_format: true,
@@ -35,20 +63,31 @@ export const addChooseSingleAnswerQuestion = async (req, res) => {
 
     const transcript = result.results.channels[0].alternatives[0].transcript;
 
-    // Save question
+    // 7. Save question to Database
     const question = await ChooseSingleAnswerQuestion.create({
+      title: title || "Untitled Question",
       audioUrl: audio.secure_url,
       cloudinaryId: audio.public_id,
       transcript: transcript,
       options: options.map(o => ({
         text: o.text,
-        isCorrect: o.isCorrect
+        isCorrect: String(o.isCorrect) === "true" // Ensure it's a real boolean
       })),
       difficulty: difficulty || "Medium"
     });
 
+    // 8. IMPORTANT: Delete the temporary file from your local server
+    if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+    }
+
     res.status(201).json({ success: true, question });
+
   } catch (error) {
+    // Clean up local file even if there is an error
+    if (req.file && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+    }
     console.error("ADD CHOOSE SINGLE ANSWER QUESTION ERROR:", error);
     res.status(500).json({ success: false, message: error.message });
   }
@@ -126,6 +165,57 @@ export const addChooseSingleAnswerQuestion = async (req, res) => {
   }
 };
 
+// ---------- DELETE QUESTION ----------
+export const deleteChooseSingleAnswerQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Validate ID
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid question id is required",
+      });
+    }
+
+    // 2. Find question
+    const question = await ChooseSingleAnswerQuestion.findById(id);
+    if (!question) {
+      return res.status(404).json({
+        success: false,
+        message: "Question not found",
+      });
+    }
+
+    // 3. Delete audio from Cloudinary
+    if (question.cloudinaryId) {
+      try {
+        await cloudinary.uploader.destroy(question.cloudinaryId, {
+          resource_type: "video",
+        });
+      } catch (cloudErr) {
+        console.error("Cloudinary delete error:", cloudErr);
+        // Not throwing error — DB delete should still happen
+      }
+    }
+
+    // 4. Delete question from DB
+    await ChooseSingleAnswerQuestion.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Choose Single Answer question deleted successfully",
+    });
+
+  } catch (error) {
+    console.error("DELETE CHOOSE SINGLE ANSWER ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.messag
+    })
+  }
+}
+
 
 
 export const updateChooseSingleAnswerQuestion = async (req, res) => {
@@ -137,15 +227,46 @@ export const updateChooseSingleAnswerQuestion = async (req, res) => {
       return res.status(404).json({ success: false, message: "Question not found" });
     }
 
-    const { title, difficulty, options } = req.body;
+    const { title, difficulty } = req.body;
+    let { options } = req.body;
 
-    // ---------- AUDIO UPDATE ----------
+    // ---------- 1. PARSE OPTIONS ----------
+    // FormData sends arrays/objects as strings. We must parse it.
+    if (options) {
+      try {
+        if (typeof options === "string") {
+          options = JSON.parse(options);
+        }
+      } catch (e) {
+        return res.status(400).json({ success: false, message: "Invalid options format" });
+      }
+
+      // Validate exactly one correct option
+      // Note: We check for both boolean true and string "true"
+      const correctCount = options.filter(
+        (o) => o.isCorrect === true || o.isCorrect === "true"
+      ).length;
+
+      if (correctCount !== 1) {
+        return res.status(400).json({
+          success: false,
+          message: "Exactly one option must be marked as correct",
+        });
+      }
+      question.options = options;
+    }
+
+    // ---------- 2. AUDIO & TRANSCRIPTION UPDATE ----------
     if (req.file) {
       // Delete old audio from Cloudinary
       if (question.cloudinaryId) {
-        await cloudinary.uploader.destroy(question.cloudinaryId, {
-          resource_type: "video",
-        });
+        try {
+          await cloudinary.uploader.destroy(question.cloudinaryId, {
+            resource_type: "video",
+          });
+        } catch (err) {
+          console.error("Cloudinary Delete Error:", err);
+        }
       }
 
       // Upload new audio
@@ -156,39 +277,31 @@ export const updateChooseSingleAnswerQuestion = async (req, res) => {
       question.audioUrl = uploaded.secure_url;
       question.cloudinaryId = uploaded.public_id;
 
-      // Optional: auto-update transcript if audio changed
-     
-    // Transcribe audio using Deepgram
-    const audioBuffer = fs.readFileSync(req.file.path);
-    const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
-      smart_format: true,
-      model: "nova-2",
-      language: "en-US"
-    });
+      // Transcribe new audio using Deepgram
+      try {
+        const audioBuffer = fs.readFileSync(req.file.path);
+        const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
+          audioBuffer,
+          {
+            smart_format: true,
+            model: "nova-2",
+            language: "en-US",
+          }
+        );
 
-    if (error) throw error;
+        if (error) throw error;
 
-    const transcript = result.results.channels[0].alternatives[0].transcript;
-    question.transcript = transcript;
+        const transcript = result.results.channels[0].alternatives[0].transcript;
+        question.transcript = transcript;
+      } catch (transcriptionError) {
+        console.error("Transcription Failed:", transcriptionError);
+        // We continue even if transcription fails, or you can throw error
+      }
     }
 
-    // ---------- FIELD UPDATES ----------
+    // ---------- 3. FIELD UPDATES ----------
     if (title !== undefined) question.title = title;
     if (difficulty !== undefined) question.difficulty = difficulty;
-
-    // ---------- OPTIONS UPDATE ----------
-    if (options !== undefined) {
-      const correctCount = options.filter(o => o.isCorrect === true).length;
-
-      if (correctCount !== 1) {
-        return res.status(400).json({
-          success: false,
-          message: "Exactly one option must be marked as correct",
-        });
-      }
-
-      question.options = options;
-    }
 
     await question.save();
 
