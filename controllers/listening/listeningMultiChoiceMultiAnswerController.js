@@ -94,6 +94,24 @@ export const getQuestionById = async (req, res) => {
   }
 };
 
+export const deleteQuestion = async (req, res) => {
+  try {
+    const question = await ListeningMultiChoiceMultiAnswer.findById(req.params.id);
+    if (!question) {
+      return res.status(404).json({ message: "Question not found" });
+    }
+
+    await cloudinary.uploader.destroy(question.cloudinaryId, {
+      resource_type: "video",
+    });
+
+    await question.deleteOne();
+    res.json({ message: "Deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Submit an attempt
 export const submitAttempt = async (req, res) => {
   try {
@@ -141,6 +159,94 @@ export const submitAttempt = async (req, res) => {
     });
   } catch (error) {
     console.error("SUBMIT LISTENING MCM ATTEMPT ERROR:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+
+// @desc    Update MCMA Question
+// @route   PUT /api/listening-multi-choice-multi-answer/:id
+export const updateQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, question, options, correctOptions, difficulty, transcript } = req.body;
+
+    const existingQuestion = await ListeningMultiChoiceMultiAnswer.findById(id);
+
+    if (!existingQuestion) {
+      if (req.file) fs.unlinkSync(req.file.path); // Cleanup temp file if question doesn't exist
+      return res.status(404).json({ success: false, message: "Question not found" });
+    }
+
+    // 1. Prepare Update Object
+    let updateData = {};
+    if (title !== undefined) updateData.title = title;
+    if (question !== undefined) updateData.question = question;
+    if (difficulty !== undefined) updateData.difficulty = difficulty;
+    if (transcript !== undefined) updateData.transcript = transcript;
+
+    // 2. Parse Options (FormData sends arrays as stringified JSON)
+    if (options) {
+      try {
+        updateData.options = typeof options === "string" ? JSON.parse(options) : options;
+      } catch (e) {
+        if (req.file) fs.unlinkSync(req.file.path);
+        return res.status(400).json({ success: false, message: "Invalid format for options" });
+      }
+    }
+
+    // 3. Parse Correct Options
+    if (correctOptions) {
+      try {
+        updateData.correctOptions = typeof correctOptions === "string" ? JSON.parse(correctOptions) : correctOptions;
+      } catch (e) {
+        if (req.file) fs.unlinkSync(req.file.path);
+        return res.status(400).json({ success: false, message: "Invalid format for correctOptions" });
+      }
+    }
+
+    // 4. Handle Audio File Update
+    if (req.file) {
+      // Delete old audio from Cloudinary
+      if (existingQuestion.cloudinaryId) {
+        try {
+          await cloudinary.uploader.destroy(existingQuestion.cloudinaryId, { resource_type: "video" });
+        } catch (err) {
+          console.error("Cloudinary Delete Error:", err);
+          // We continue anyway to update with the new file
+        }
+      }
+
+      // Upload new audio
+      const audio = await cloudinary.uploader.upload(req.file.path, { resource_type: "video" });
+      
+      updateData.audioUrl = audio.secure_url;
+      updateData.cloudinaryId = audio.public_id;
+
+      // Delete temporary local file
+      fs.unlinkSync(req.file.path);
+    }
+
+    // 5. Update in Database
+    const updatedQuestion = await ListeningMultiChoiceMultiAnswer.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      data: updatedQuestion,
+      message: "Question updated successfully",
+    });
+
+  } catch (error) {
+    // Cleanup local file if error occurs
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    console.error("UPDATE LISTENING MCM QUESTION ERROR:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

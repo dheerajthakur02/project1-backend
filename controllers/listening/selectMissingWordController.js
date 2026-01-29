@@ -10,51 +10,70 @@ const deepgram = createClient(process.env.API_KEY);
 // ---------- CREATE QUESTION ----------
 export const addSelectMissingWordQuestion = async (req, res) => {
   try {
-    const { title, options, difficulty } = req.body;
+    const { title, difficulty } = req.body;
+    let { options } = req.body;
 
+    // 1. Check for audio
     if (!req.file) {
       return res.status(400).json({ success: false, message: "Audio is required" });
     }
 
-    if (!options || options.length !== 3) {
-      return res.status(400).json({ success: false, message: "Provide 3 options" });
+    // 2. PARSE OPTIONS (FormData sends this as a string)
+    if (typeof options === "string") {
+      try {
+        options = JSON.parse(options);
+      } catch (e) {
+        return res.status(400).json({ success: false, message: "Invalid options format" });
+      }
     }
 
-    //Upload audio
+    // 3. Validation
+    if (!options || !Array.isArray(options) || options.length < 2) {
+      return res.status(400).json({ success: false, message: "Provide at least 2 options" });
+    }
+
+    // Check if exactly one is correct (Handle both boolean true and string "true")
+    const correctCount = options.filter(o => String(o.isCorrect) === "true").length;
+    if (correctCount !== 1) {
+      return res.status(400).json({ success: false, message: "Exactly one option must be marked as correct" });
+    }
+
+    // 4. Upload audio
     const audio = await cloudinary.uploader.upload(req.file.path, { resource_type: "video" });
 
-    // Transcribe audio using Deepgram
+    // 5. Transcribe
     const audioBuffer = fs.readFileSync(req.file.path);
     const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
       smart_format: true,
       model: "nova-2",
       language: "en-US"
     });
-
     if (error) throw error;
-
     const transcript = result.results.channels[0].alternatives[0].transcript;
 
-    // Save question
+    // 6. Save question
     const question = await SelectMissingWordQuestion.create({
-        title,
+      title,
       audioUrl: audio.secure_url,
       cloudinaryId: audio.public_id,
       transcript: transcript,
       options: options.map(o => ({
         text: o.text,
-        isCorrect: o.isCorrect
+        isCorrect: String(o.isCorrect) === "true"
       })),
       difficulty: difficulty || "Medium"
     });
 
+    // Clean up local temp file
+    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+
     res.status(201).json({ success: true, question });
   } catch (error) {
-    console.error("ADD SELECT MISSING WORD QUESTION ERROR:", error);
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    console.error("ADD SMW ERROR:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 // ---------- GET USER ATTEMPTS ----------
  export const getSelectMissingWordWithAttempts = async (req, res) => {
@@ -132,81 +151,86 @@ export const addSelectMissingWordQuestion = async (req, res) => {
 export const updateSelectMissingWordQuestion = async (req, res) => {
   try {
     const { id } = req.params;
+    const { title, difficulty } = req.body;
+    let { options } = req.body;
 
     const question = await SelectMissingWordQuestion.findById(id);
     if (!question) {
+      if (req.file) fs.unlinkSync(req.file.path);
       return res.status(404).json({ success: false, message: "Question not found" });
     }
 
-    const { title, difficulty, options } = req.body;
-
-    // ---------- AUDIO UPDATE ----------
-    if (req.file) {
-      // Delete old audio from Cloudinary
-      if (question.cloudinaryId) {
-        await cloudinary.uploader.destroy(question.cloudinaryId, {
-          resource_type: "video",
-        });
+    // 1. PARSE OPTIONS IF PROVIDED
+    if (options && typeof options === "string") {
+      try {
+        options = JSON.parse(options);
+      } catch (e) {
+        return res.status(400).json({ success: false, message: "Invalid options format" });
       }
+    }
 
-      // Upload new audio
-      const uploaded = await cloudinary.uploader.upload(req.file.path, {
-        resource_type: "video",
-      });
-
+    // 2. AUDIO UPDATE
+    if (req.file) {
+      if (question.cloudinaryId) {
+        await cloudinary.uploader.destroy(question.cloudinaryId, { resource_type: "video" });
+      }
+      const uploaded = await cloudinary.uploader.upload(req.file.path, { resource_type: "video" });
       question.audioUrl = uploaded.secure_url;
       question.cloudinaryId = uploaded.public_id;
 
-      // Optional: auto-update transcript if audio changed
-     
-    // Transcribe audio using Deepgram
-    const audioBuffer = fs.readFileSync(req.file.path);
-    const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
-      smart_format: true,
-      model: "nova-2",
-      language: "en-US"
-    });
-
-    if (error) throw error;
-
-    const transcript = result.results.channels[0].alternatives[0].transcript;
-    question.transcript = transcript;
+      const audioBuffer = fs.readFileSync(req.file.path);
+      const { result } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
+        smart_format: true,
+        model: "nova-2",
+        language: "en-US"
+      });
+      question.transcript = result.results.channels[0].alternatives[0].transcript;
+      
+      fs.unlinkSync(req.file.path); // cleanup
     }
 
-    // ---------- FIELD UPDATES ----------
+    // 3. FIELD UPDATES
     if (title !== undefined) question.title = title;
     if (difficulty !== undefined) question.difficulty = difficulty;
 
-    // ---------- OPTIONS UPDATE ----------
-    if (options !== undefined) {
-      const correctCount = options.filter(o => o.isCorrect === true).length;
-
+    // 4. OPTIONS UPDATE VALIDATION
+    if (options) {
+      const correctCount = options.filter(o => String(o.isCorrect) === "true").length;
       if (correctCount !== 1) {
-        return res.status(400).json({
-          success: false,
-          message: "Exactly one option must be marked as correct",
-        });
+        return res.status(400).json({ success: false, message: "Exactly one option must be marked as correct" });
       }
-
-      question.options = options;
+      question.options = options.map(o => ({
+        text: o.text,
+        isCorrect: String(o.isCorrect) === "true"
+      }));
     }
 
     await question.save();
-
-    res.status(200).json({
-      success: true,
-      question,
-    });
+    res.status(200).json({ success: true, question });
 
   } catch (error) {
-    console.error("UPDATE SELECT MISSING WORD QUESTION ERROR:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    console.error("UPDATE SMW ERROR:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+export const deleteQuestion = async (req, res) => {
+  try {
+    const question = await SelectMissingWordQuestion.findById(req.params.id);
+    if (!question) {
+      return res.status(404).json({ message: "Question not found" });
+    }
 
+    await cloudinary.uploader.destroy(question.cloudinaryId, {
+      resource_type: "video",
+    });
+
+    await question.deleteOne();
+    res.json({ message: "Deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 export const submitSelectMissingWordAttempt = async (req, res) => {
   try {

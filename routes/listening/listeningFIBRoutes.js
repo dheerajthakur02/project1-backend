@@ -2,8 +2,10 @@ import express from "express";
 import { upload } from "../../middlewares/upload.js";
 import {
   addListeningFIBQuestion,
+  deleteQuestion,
   getListeningFIBQuestionsWithAttempts,
-  submitListeningFIBAttempt
+  submitListeningFIBAttempt,
+  updateListeningFIBQuestion
 } from "../../controllers/listening/listeningFIBController.js";
 import { checkPracticeLimit } from "../../middlewares/practiceLimitMiddleware.js";
 
@@ -12,6 +14,9 @@ const router = express.Router();
 // Question routes
 router.post("/add", upload.single("audio"), addListeningFIBQuestion);
 router.get("/questions/:userId", getListeningFIBQuestionsWithAttempts);
+
+router.put("/:id", updateListeningFIBQuestion)
+router.delete("/:id", deleteQuestion)
 
 // Attempt routes
 router.post("/submit", checkPracticeLimit, submitListeningFIBAttempt);

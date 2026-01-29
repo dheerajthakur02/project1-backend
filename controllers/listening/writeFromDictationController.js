@@ -115,6 +115,24 @@ export const getQuestions = async (req, res) => {
     }
 };
 
+export const deleteQuestion = async (req, res) => {
+  try {
+    const question = await WriteFromDictationQuestion.findById(req.params.id);
+    if (!question) {
+      return res.status(404).json({ message: "Question not found" });
+    }
+
+    await cloudinary.uploader.destroy(question.cloudinaryId, {
+      resource_type: "video",
+    });
+
+    await question.deleteOne();
+    res.json({ message: "Deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Submit Attempt (Scoring Logic)
 export const submitAttempt = async (req, res) => {
     try {
@@ -225,4 +243,94 @@ export const getAttempts = async (req, res) => {
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
+};
+
+
+export const updateQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, difficulty, transcript: manualTranscript } = req.body;
+
+    const question = await WriteFromDictationQuestion.findById(id);
+    if (!question) {
+      if (req.file) fs.unlinkSync(req.file.path); // Cleanup if file was sent
+      return res.status(404).json({ success: false, message: "Question not found" });
+    }
+
+    // ---------- 1. HANDLE AUDIO UPDATE ----------
+    if (req.file) {
+      // Delete old audio from Cloudinary
+      if (question.cloudinaryId) {
+        try {
+          await cloudinary.uploader.destroy(question.cloudinaryId, {
+            resource_type: "video",
+          });
+        } catch (err) {
+          console.error("Cloudinary Delete Error:", err);
+        }
+      }
+
+      // Upload new audio to Cloudinary
+      const uploaded = await cloudinary.uploader.upload(req.file.path, {
+        resource_type: "video",
+        folder: "wfd_audio",
+      });
+
+      question.audioUrl = uploaded.secure_url;
+      question.cloudinaryId = uploaded.public_id;
+
+      // Auto-transcribe new audio ONLY IF no manual transcript is provided in the request
+      if (!manualTranscript) {
+        try {
+          const audioBuffer = fs.readFileSync(req.file.path);
+          const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
+            audioBuffer,
+            {
+              smart_format: true,
+              model: "nova-2",
+              language: "en-US",
+              punctuate: true
+            }
+          );
+          if (!error) {
+            question.transcript = result.results.channels[0].alternatives[0].transcript;
+          }
+        } catch (transError) {
+          console.error("Deepgram transcription failed during update:", transError);
+        }
+      }
+
+      // Delete the temporary local file
+      fs.unlinkSync(req.file.path);
+    }
+
+    // ---------- 2. UPDATE TEXT FIELDS ----------
+    if (title !== undefined) question.title = title;
+    if (difficulty !== undefined) question.difficulty = difficulty;
+    
+    // If user provided a manual transcript, it overrides everything
+    if (manualTranscript !== undefined) {
+        question.transcript = manualTranscript;
+    }
+
+    // Save changes
+    const updatedQuestion = await question.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Question updated successfully",
+      data: updatedQuestion,
+    });
+
+  } catch (error) {
+    // Cleanup local file in case of crash
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    console.error("UPDATE WFD QUESTION ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };

@@ -6,7 +6,8 @@ import {
   addHighlightSummaryAttempt,
   getHighlightSummaryQuestionsWithAttempts ,
   updateQuestion,
-  submitHCSAttempt
+  submitHCSAttempt,
+  deleteQuestion
 } from "../../controllers/listening/hcsControllers.js";
 
 
@@ -14,10 +15,10 @@ const router = express.Router();
 const upload = multer({ dest: "uploads/" });
 
 // Question routes
-router.post("/questions", upload.single("audio"), addHighlightSummaryQuestion);
+router.post("/add", upload.single("audio"), addHighlightSummaryQuestion);
 router.get("/questions/userId", getHighlightSummaryQuestions);
 router.put("/questions/:id", upload.single("audio"), updateQuestion)
-
+router.delete("/:id", deleteQuestion)
 import { checkPracticeLimit } from "../../middlewares/practiceLimitMiddleware.js";
 
 // Attempt routes

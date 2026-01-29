@@ -9,12 +9,19 @@ export const createHIWQuestion = async (req, res) => {
   try {
     const { title, content, mistakes, difficulty } = req.body;
 
+     if (!req.file) {
+      return res.status(400).json({ success: false, message: "Audio is required" });
+    }
+
+     // 4. Upload to Cloudinary
+        const audio = await cloudinary.uploader.upload(req.file.path, { resource_type: "video" });
+
     const newQuestion = await HIWQuestion.create({
       title,
       content,
       mistakes: typeof mistakes === "string" ? JSON.parse(mistakes) : mistakes,
-      audioUrl: "audio placeholder",
-      cloudinaryId: "cloudinaryId placeholder",
+      audioUrl: audio?.secure_url,
+      cloudinaryId: audio?.public_id,
       difficulty,
     });
 
@@ -35,27 +42,36 @@ export const createHIWQuestion = async (req, res) => {
 
 // @desc    Update HIW Question
 // @route   PUT /api/hiw/:id
+
 export const updateHIWQuestion = async (req, res) => {
   try {
     const { id } = req.params;
     let question = await HIWQuestion.findById(id);
 
     if (!question) {
+      if (req.file) fs.unlinkSync(req.file.path); 
       return res.status(404).json({ success: false, message: "Question not found" });
     }
 
     // Build update object
     const updateData = { ...req.body };
     
-    // Handle correctKeys if sent as string from frontend
-    if (req.body.correctKeys) {
-        updateData.correctKeys = JSON.parse(req.body.correctKeys);
+    // --- FIX: Handle mistakes array if sent as string from FormData ---
+    if (req.body.mistakes) {
+      try {
+        updateData.mistakes = typeof req.body.mistakes === "string" 
+          ? JSON.parse(req.body.mistakes) 
+          : req.body.mistakes;
+      } catch (e) {
+        if (req.file) fs.unlinkSync(req.file.path);
+        return res.status(400).json({ success: false, message: "Invalid mistakes format" });
+      }
     }
 
-    // Handle Audio Update if a new file is uploaded
+    // Handle Audio Update
     if (req.file) {
-      // 1. Delete old audio from Cloudinary
-      if (question.cloudinaryId) {
+      // 1. Delete old audio
+      if (question.cloudinaryId && question.cloudinaryId !== "cloudinaryId placeholder") {
         await cloudinary.uploader.destroy(question.cloudinaryId, { resource_type: "video" });
       }
 
@@ -67,9 +83,12 @@ export const updateHIWQuestion = async (req, res) => {
 
       updateData.audioUrl = result.secure_url;
       updateData.cloudinaryId = result.public_id;
+
+      // 3. Delete temp file from local server
+      fs.unlinkSync(req.file.path);
     }
 
-    // Update only the fields provided in updateData
+    // Update the document
     const updatedQuestion = await HIWQuestion.findByIdAndUpdate(
       id,
       { $set: updateData },
@@ -78,9 +97,11 @@ export const updateHIWQuestion = async (req, res) => {
 
     res.status(200).json({ success: true, data: updatedQuestion });
   } catch (error) {
+    if (req.file) fs.unlinkSync(req.file.path); // Cleanup on error
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // @desc    Get all HIW Questions
 // @route   GET /api/hiw
@@ -196,6 +217,24 @@ export const getHIWQuestions  = async (req, res) => {
       success: false,
       message: error.message,
     });
+  }
+};
+
+export const deleteQuestion = async (req, res) => {
+  try {
+    const question = await HIWQuestion.findById(req.params.id);
+    if (!question) {
+      return res.status(404).json({ message: "Question not found" });
+    }
+
+    await cloudinary.uploader.destroy(question.cloudinaryId, {
+      resource_type: "video",
+    });
+
+    await question.deleteOne();
+    res.json({ message: "Deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 

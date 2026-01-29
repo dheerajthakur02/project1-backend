@@ -1,7 +1,7 @@
 import express from 'express';
 const router = express.Router();
 import { upload } from '../../middlewares/upload.js';
-import { addSelectMissingWordQuestion, getSelectMissingWordWithAttempts, submitSelectMissingWordAttempt, updateSelectMissingWordQuestion } from '../../controllers/listening/selectMissingWordController.js';
+import { addSelectMissingWordQuestion, deleteQuestion, getSelectMissingWordWithAttempts, submitSelectMissingWordAttempt, updateSelectMissingWordQuestion } from '../../controllers/listening/selectMissingWordController.js';
 
 
 
@@ -10,6 +10,7 @@ import { checkPracticeLimit } from '../../middlewares/practiceLimitMiddleware.js
 router.post('/add', upload.single('audio'), addSelectMissingWordQuestion);
 router.get('/:userId', getSelectMissingWordWithAttempts);
 router.put('/:id', upload.single('audio'), updateSelectMissingWordQuestion); // Partial update
+router.delete('/:id', deleteQuestion)
 router.post('/submit', upload.none(), checkPracticeLimit, submitSelectMissingWordAttempt);
 
 export default router;

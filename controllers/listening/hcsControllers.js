@@ -7,22 +7,43 @@ import { cloudinary } from "../../config/cloudinary.js";
 dotenv.config();
 const deepgram = createClient(process.env.API_KEY);
 // ---------- CREATE QUESTION ----------
+
+
+// ---------- CREATE QUESTION ----------
 export const addHighlightSummaryQuestion = async (req, res) => {
   try {
-    const { summaries, difficulty } = req.body;
+    let { summaries, difficulty, title } = req.body;
 
+    // 1. Check for Audio
     if (!req.file) {
       return res.status(400).json({ success: false, message: "Audio is required" });
     }
 
-    if (!summaries || summaries.length !== 3) {
-      return res.status(400).json({ success: false, message: "Provide 3 summaries" });
+    // 2. Parse Summaries (FormData sends arrays as JSON strings)
+    if (typeof summaries === "string") {
+      try {
+        summaries = JSON.parse(summaries);
+      } catch (e) {
+        return res.status(400).json({ success: false, message: "Invalid summaries format" });
+      }
     }
 
-    // Upload audio
+    // 3. Validation
+    if (!summaries || summaries.length !== 3) {
+      if (req.file) fs.unlinkSync(req.file.path); // Cleanup temp file
+      return res.status(400).json({ success: false, message: "Provide exactly 3 summaries" });
+    }
+
+    const hasCorrect = summaries.some(s => String(s.isCorrect) === "true");
+    if (!hasCorrect) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(400).json({ success: false, message: "One summary must be marked as correct" });
+    }
+
+    // 4. Upload to Cloudinary
     const audio = await cloudinary.uploader.upload(req.file.path, { resource_type: "video" });
 
-    // Transcribe audio using Deepgram
+    // 5. Transcribe
     const audioBuffer = fs.readFileSync(req.file.path);
     const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
       smart_format: true,
@@ -31,28 +52,103 @@ export const addHighlightSummaryQuestion = async (req, res) => {
     });
 
     if (error) throw error;
-
     const transcript = result.results.channels[0].alternatives[0].transcript;
 
-    // Save question
+    // 6. Save to DB
     const question = await HighlightSummaryQuestion.create({
+      title: title || "Untitled Question",
       audioUrl: audio.secure_url,
       cloudinaryId: audio.public_id,
       transcript,
       summaries: summaries.map(s => ({
         text: s.text,
-        isCorrect: s.isCorrect
+        isCorrect: String(s.isCorrect) === "true" // Handle string booleans from FormData
       })),
       difficulty: difficulty || "Medium"
     });
 
+    // 7. Cleanup temp local file
+    fs.unlinkSync(req.file.path);
+
     res.status(201).json({ success: true, question });
   } catch (error) {
+    if (req.file) fs.unlinkSync(req.file.path);
     console.error("ADD HIGHLIGHT SUMMARY QUESTION ERROR:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
+// ---------- UPDATE QUESTION ----------
+export const updateQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let { title, difficulty, summaries } = req.body;
+
+    const question = await HighlightSummaryQuestion.findById(id);
+    if (!question) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(404).json({ success: false, message: "Question not found" });
+    }
+
+    // 1. Parse Summaries if provided
+    if (summaries && typeof summaries === "string") {
+      try {
+        summaries = JSON.parse(summaries);
+      } catch (e) {
+        return res.status(400).json({ success: false, message: "Invalid summaries format" });
+      }
+    }
+
+    // 2. Audio Update Logic
+    if (req.file) {
+      // Destroy old audio
+      if (question.cloudinaryId) {
+        await cloudinary.uploader.destroy(question.cloudinaryId, { resource_type: "video" });
+      }
+
+      // Upload new
+      const uploaded = await cloudinary.uploader.upload(req.file.path, { resource_type: "video" });
+      question.audioUrl = uploaded.secure_url;
+      question.cloudinaryId = uploaded.public_id;
+
+      // Update Transcript
+      const audioBuffer = fs.readFileSync(req.file.path);
+      const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
+        smart_format: true,
+        model: "nova-2",
+        language: "en-US"
+      });
+      if (!error) {
+        question.transcript = result.results.channels[0].alternatives[0].transcript;
+      }
+      fs.unlinkSync(req.file.path);
+    }
+
+    // 3. Update Text Fields
+    if (title) question.title = title;
+    if (difficulty) question.difficulty = difficulty;
+
+    // 4. Update Summaries
+    if (summaries) {
+      const correctCount = summaries.filter(s => String(s.isCorrect) === "true").length;
+      if (correctCount !== 1) {
+        return res.status(400).json({ success: false, message: "Exactly one summary must be correct" });
+      }
+      question.summaries = summaries.map(s => ({
+        text: s.text,
+        isCorrect: String(s.isCorrect) === "true"
+      }));
+    }
+
+    await question.save();
+    res.status(200).json({ success: true, question });
+
+  } catch (error) {
+    if (req.file) fs.unlinkSync(req.file.path);
+    console.error("UPDATE ERROR:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 
 // ---------- GET QUESTIONS ----------
@@ -161,85 +257,26 @@ export const addHighlightSummaryAttempt = async (req, res) => {
   }
 };
 
-
-
-export const updateQuestion = async (req, res) => {
+export const deleteQuestion = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const question = await HighlightSummaryQuestion.findById(id);
+    const question = await HighlightSummaryQuestion.findById(req.params.id);
     if (!question) {
-      return res.status(404).json({ success: false, message: "Question not found" });
+      return res.status(404).json({ message: "Question not found" });
     }
 
-    const { title, difficulty,  summaries } = req.body;
-
-    // ---------- AUDIO UPDATE ----------
-    if (req.file) {
-      // Delete old audio from Cloudinary
-      // if (question.cloudinaryId) {
-      //   await cloudinary.uploader.destroy(question.cloudinaryId, {
-      //     resource_type: "video",
-      //   });
-      // }
-
-      // Upload new audio
-      const uploaded = await cloudinary.uploader.upload(req.file.path, {
-        resource_type: "video",
-      });
-
-      question.audioUrl = uploaded.secure_url;
-      question.cloudinaryId = uploaded.public_id;
-
-      // Optional: auto-update transcript if audio changed
-     
-    // Transcribe audio using Deepgram
-    const audioBuffer = fs.readFileSync(req.file.path);
-    const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
-      smart_format: true,
-      model: "nova-2",
-      language: "en-US"
+    await cloudinary.uploader.destroy(question.cloudinaryId, {
+      resource_type: "video",
     });
 
-    if (error) throw error;
-
-    const transcript = result.results.channels[0].alternatives[0].transcript;
-    question.transcript = transcript;
-    }
-
-    // ---------- FIELD UPDATES ----------
-    if (title !== undefined) question.title = title;
-    if (difficulty !== undefined) question.difficulty = difficulty;
-
-    // ---------- SUMMARIES UPDATE ----------
-    if (summaries !== undefined) {
-      const correctCount = summaries.filter(s => s.isCorrect === true).length;
-
-      if (correctCount !== 1) {
-        return res.status(400).json({
-          success: false,
-          message: "Exactly one summary must be marked as correct",
-        });
-      }
-
-      question.summaries = summaries;
-    }
-
-    await question.save();
-
-    res.status(200).json({
-      success: true,
-      question,
-    });
-
+    await question.deleteOne();
+    res.json({ message: "Deleted successfully" });
   } catch (error) {
-    console.error("UPDATE HIGHLIGHT SUMMARY QUESTION ERROR:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(500).json({ message: error.message });
   }
 };
+
+
+
 
 
 export const submitHCSAttempt = async (req, res) => {

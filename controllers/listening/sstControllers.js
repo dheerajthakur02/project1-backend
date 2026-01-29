@@ -237,6 +237,24 @@ export const updateQuestion = async (req, res) => {
   }
 };
 
+export const deleteQuestion = async (req, res) => {
+  try {
+    const question = await SSTQuestion.findById(req.params.id);
+    if (!question) {
+      return res.status(404).json({ message: "Question not found" });
+    }
+
+    await cloudinary.uploader.destroy(question.cloudinaryId, {
+      resource_type: "video",
+    });
+
+    await question.deleteOne();
+    res.json({ message: "Deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 
 
 

@@ -121,6 +121,23 @@ export const getListeningFIBQuestionsWithAttempts = async (req, res) => {
   }
 };
 
+export const deleteQuestion = async (req, res) => {
+  try {
+    const question = await ListeningFIBQuestion.findById(req.params.id);
+    if (!question) {
+      return res.status(404).json({ message: "Question not found" });
+    }
+
+    await cloudinary.uploader.destroy(question.cloudinaryId, {
+      resource_type: "video",
+    });
+
+    await question.deleteOne();
+    res.json({ message: "Deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 // ---------- SUBMIT ATTEMPT ----------
 export const submitListeningFIBAttempt = async (req, res) => {
   try {
@@ -156,6 +173,58 @@ export const submitListeningFIBAttempt = async (req, res) => {
     res.status(201).json({ success: true, attempt });
   } catch (error) {
     console.error("SUBMIT LISTENING FIB ATTEMPT ERROR:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ---------- UPDATE QUESTION ----------
+export const updateListeningFIBQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let { title, transcript, correctAnswers, difficulty } = req.body;
+
+    const question = await ListeningFIBQuestion.findById(id);
+    if (!question) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(404).json({ success: false, message: "Question not found" });
+    }
+
+    // 1. Handle Correct Answers Parsing (FormData sends arrays as strings)
+    if (correctAnswers && typeof correctAnswers === "string") {
+      try {
+        correctAnswers = JSON.parse(correctAnswers);
+      } catch (e) {
+        return res.status(400).json({ success: false, message: "Invalid answers format" });
+      }
+    }
+
+    // 2. Handle Audio Update
+    if (req.file) {
+      // Delete old from Cloudinary
+      if (question.cloudinaryId) {
+        await cloudinary.uploader.destroy(question.cloudinaryId, { resource_type: "video" });
+      }
+      // Upload new
+      const result = await cloudinary.uploader.upload(req.file.path, { resource_type: "video" });
+      question.audioUrl = result.secure_url;
+      question.cloudinaryId = result.public_id;
+      
+      // Cleanup local temp file
+      fs.unlinkSync(req.file.path);
+    }
+
+    // 3. Update Fields
+    if (title) question.title = title;
+    if (transcript) question.transcript = transcript;
+    if (difficulty) question.difficulty = difficulty;
+    if (correctAnswers) question.correctAnswers = correctAnswers;
+
+    await question.save();
+    res.status(200).json({ success: true, question });
+
+  } catch (error) {
+    if (req.file) fs.unlinkSync(req.file.path);
+    console.error("UPDATE LISTENING FIB ERROR:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
