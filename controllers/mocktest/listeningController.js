@@ -223,7 +223,8 @@ export const submitListeningResult = async (req, res) => {
 
     const result = new ListeningResult({
       user: req.user?._id || userId, 
-      listeningId,
+      testId: listeningId, // Renamed
+      testModel: 'Listening', // Default
       scores,
       overallScore: totalScore,
     });
@@ -248,7 +249,7 @@ export const getMyListeningResults = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
     const results = await ListeningResult.find({ user: userId })
-      .populate("listeningId", "title")
+      .populate("testId", "title name")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -268,7 +269,7 @@ export const getMyListeningResults = async (req, res) => {
 export const getResultsByListeningId = async (req, res) => {
   try {
     const results = await ListeningResult.find({
-      listeningId: req.params.listeningId,
+      testId: req.params.listeningId, // Query by testId
     })
       .populate("user", "name email")
       .sort({ createdAt: -1 });
@@ -291,7 +292,7 @@ export const getListeningResultById = async (req, res) => {
   try {
     const result = await ListeningResult.findById(req.params.id)
       .populate("user", "name email")
-      .populate("listeningId", "title");
+      .populate("testId", "title");
 
     if (!result) {
       return res.status(404).json({

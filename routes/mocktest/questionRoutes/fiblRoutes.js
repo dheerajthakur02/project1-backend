@@ -5,6 +5,7 @@ import {
   getFIBLById,
   updateFIBL,
   deleteFIBL,
+  submitFIBL
 } from "../../../controllers/mocktest/questionTests/fiblController.js";
 
 const router = express.Router();
@@ -14,5 +15,7 @@ router.get("/", getAllFIBL);
 router.get("/:id", getFIBLById);
 router.put("/:id", updateFIBL);
 router.delete("/:id", deleteFIBL);
+
+router.post("/submit", submitFIBL);
 
 export default router;

@@ -1,4 +1,5 @@
 import RS from "../../../models/mocktest/QuestionTests/RS.js";
+import { SpeakingResult } from "../../../models/mocktest/Speaking.js";
 import mongoose from "mongoose";
 import RepeatQuestion from "../../../models/repeat.model.js";
 /* ===================== CREATE RL ===================== */
@@ -208,9 +209,10 @@ export const deleteRS = async (req, res) => {
   }
 };
 /* ===================== SUBMIT RS ===================== */
+/* ===================== SUBMIT RS ===================== */
 export const submitRS = async (req, res) => {
   try {
-    const { testId, answers } = req.body; 
+    const { testId, answers, userId } = req.body; 
     // answers: array of { questionId, ... }
 
     // Mock Scoring Logic
@@ -228,24 +230,46 @@ export const submitRS = async (req, res) => {
 
         return {
             questionId: a.questionId,
-            fluency,
-            pronunciation,
-            score: Math.round((fluency + pronunciation) / 2)
+            questionType: "RS",
+            fluencyScore: fluency,
+            pronunciationScore: pronunciation,
+            score: Math.round((fluency + pronunciation) / 2),
+            userTranscript: "", // RS usually doesn't show transcript unless STT is used
+            audioUrl: a.audioUrl
         };
     }) : [];
 
+    const sectionScores = {
+        fluency: count > 0 ? Math.round(totalFluency / count) : 0,
+        pronunciation: count > 0 ? Math.round(totalPronunciation / count) : 0,
+        content: 0
+    };
+
+    const overallScore = count > 0 ? Math.round((totalFluency + totalPronunciation) / (count * 2)) : 0;
+
     const resultData = {
-        sectionScores: {
-            fluency: count > 0 ? Math.round(totalFluency / count) : 0,
-            pronunciation: count > 0 ? Math.round(totalPronunciation / count) : 0,
-        },
-        overallScore: count > 0 ? Math.round((totalFluency + totalPronunciation) / (count * 2)) : 0,
+        sectionScores,
+        overallScore,
         questionResults: results
     };
 
+    // SAVE TO DB
+    // Assuming we use SpeakingResult for all speaking sub-tests
+    // SAVE TO DB
+    const speakingResult = new SpeakingResult({
+        user: req.user?._id || userId,
+        testId: testId,
+        testModel: 'RS', // Using 'RS' model
+        overallScore,
+        sectionScores,
+        scores: results
+    });
+
+    await speakingResult.save();
+
     res.json({
         success: true,
-        data: resultData
+        data: speakingResult
     });
 
   } catch (error) {

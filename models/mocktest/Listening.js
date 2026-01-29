@@ -90,7 +90,13 @@ ListeningSchema.pre("save", function (next) {
 
 const ListeningResultSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  listeningId: { type: mongoose.Schema.Types.ObjectId, ref: 'Listening' },
+  // Dynamic Reference for Full Listening Section or Question Tests (FIBL, WFD, etc.)
+  testId: { type: mongoose.Schema.Types.ObjectId, refPath: 'testModel' },
+  testModel: { 
+    type: String, 
+    required: true, 
+    enum: ['Listening', 'FIBL', 'WFD', 'SST', 'HCS', 'SMW', 'HIW', 'CSA', 'CMA'] 
+  },
   overallScore: Number,
   scores: [
     {

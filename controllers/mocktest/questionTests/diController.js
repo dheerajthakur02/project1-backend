@@ -1,5 +1,6 @@
 import { ImageQuestion } from "../../../models/image.model.js";
 import DI from "../../../models/mocktest/QuestionTests/DI.js";
+import { SpeakingResult } from "../../../models/mocktest/Speaking.js";
 import mongoose from "mongoose";
 
 export const createDI = async (req, res) => {
@@ -206,9 +207,10 @@ export const deleteDI = async (req, res) => {
   }
 };
 /* ===================== SUBMIT DI ===================== */
+/* ===================== SUBMIT DI ===================== */
 export const submitDI = async (req, res) => {
   try {
-    const { testId, answers } = req.body; 
+    const { testId, answers, userId } = req.body; 
     // answers: array of { questionId, ... }
 
     // Mock Scoring Logic
@@ -229,26 +231,46 @@ export const submitDI = async (req, res) => {
 
         return {
             questionId: a.questionId,
-            fluency,
-            pronunciation,
-            content,
-            score: Math.round((fluency + pronunciation + content) / 3)
+            questionType: "DI",
+            fluencyScore: fluency,
+            pronunciationScore: pronunciation,
+            contentScore: content,
+            score: Math.round((fluency + pronunciation + content) / 3),
+            userTranscript: "",
+            audioUrl: a.audioUrl
         };
     }) : [];
 
+    const sectionScores = {
+        fluency: count > 0 ? Math.round(totalFluency / count) : 0,
+        pronunciation: count > 0 ? Math.round(totalPronunciation / count) : 0,
+        content: count > 0 ? Math.round(totalContent / count) : 0,
+    };
+
+    const overallScore = count > 0 ? Math.round((totalFluency + totalPronunciation + totalContent) / (count * 3)) : 0;
+
     const resultData = {
-        sectionScores: {
-            fluency: count > 0 ? Math.round(totalFluency / count) : 0,
-            pronunciation: count > 0 ? Math.round(totalPronunciation / count) : 0,
-            content: count > 0 ? Math.round(totalContent / count) : 0,
-        },
-        overallScore: count > 0 ? Math.round((totalFluency + totalPronunciation + totalContent) / (count * 3)) : 0,
+        sectionScores,
+        overallScore,
         questionResults: results
     };
 
+    // SAVE TO DB
+    // SAVE TO DB
+    const speakingResult = new SpeakingResult({
+        user: req.user?._id || userId,
+        testId: testId,
+        testModel: 'DI', // Using 'DI' model
+        overallScore,
+        sectionScores,
+        scores: results
+    });
+
+    await speakingResult.save();
+
     res.json({
         success: true,
-        data: resultData
+        data: speakingResult
     });
 
   } catch (error) {

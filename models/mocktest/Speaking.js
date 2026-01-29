@@ -62,7 +62,13 @@ SpeakingSchema.pre("save", function (next) {
 
 const SpeakingResultSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  speakingTestId: { type: mongoose.Schema.Types.ObjectId, ref: 'Speaking' },
+  // Dynamic Reference to handle both Full Speaking Section and individual Question Tests (RS, DI, etc.)
+  testId: { type: mongoose.Schema.Types.ObjectId, refPath: 'testModel' },
+  testModel: { 
+    type: String, 
+    required: true, 
+    enum: ['Speaking', 'RS', 'DI', 'RL', 'SST', 'HIW', 'readaloud'] // Add other speaking/listening models as needed
+  },
   overallScore: Number,
   sectionScores: {
     content: Number,
@@ -79,7 +85,13 @@ const SpeakingResultSchema = new mongoose.Schema({
       contentScore: Number,
       fluencyScore: Number,
       pronunciationScore: Number,
-      audioUrl: String
+      audioUrl: String,
+      wordAnalysis: [
+        {
+          word: String,
+          status: String // 'correct', 'incorrect', 'missing'
+        }
+      ]
     }
   ],
   createdAt: { type: Date, default: Date.now }

@@ -1,5 +1,5 @@
 import express from "express";
-import { createDI, deleteDI, getAllDI, getDIById, updateDI } from "../../../controllers/mocktest/questionTests/diController.js";
+import { createDI, deleteDI, getAllDI, getDIById, updateDI, submitDI } from "../../../controllers/mocktest/questionTests/diController.js";
 
 const router = express.Router();
 
@@ -8,5 +8,6 @@ router.get("/", getAllDI);
 router.get("/:id", getDIById);
 router.put("/:id", updateDI);
 router.delete("/:id", deleteDI);
+router.post("/submit", submitDI);
 
 export default router;

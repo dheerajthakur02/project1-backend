@@ -348,7 +348,7 @@ async function calculateSWTScore(ans) {
 /* ===================== GET USER WRITING RESULTS ===================== */
 export const getUserWritingResults = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.user?._id || req.user?.id || req.params.userId;
 
     const results = await WritingResult.find({ user: userId })
       .populate("writingId")

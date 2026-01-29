@@ -220,7 +220,8 @@ export const calculateSpeakingResult = async (req, res) => {
 
     const finalResult = new SpeakingResult({
       user: userId,
-      speakingTestId,
+      testId: speakingTestId, // Renamed from speakingTestId
+      testModel: 'Speaking', // Default to Speaking section
       overallScore: questionCount > 0 ? Math.round((totalContent + totalFluency + totalPronunciation) / (questionCount * 3)) : 0,
       sectionScores: {
         content: questionCount > 0 ? Math.round(totalContent / questionCount) : 0,
@@ -246,7 +247,7 @@ export const getUserSpeakingResults = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
     const results = await SpeakingResult.find({ user: userId })
-      .populate("speakingTestId", "title")
+      .populate("testId", "title name") // Renamed from speakingTestId
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -268,7 +269,7 @@ export const getUserSpeakingResults = async (req, res) => {
 export const getSpeakingResultById = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await SpeakingResult.findById(id).populate("speakingTestId");
+    const result = await SpeakingResult.findById(id).populate("testId");
 
     if (!result) return res.status(404).json({ success: false, message: "Result not found" });
 
