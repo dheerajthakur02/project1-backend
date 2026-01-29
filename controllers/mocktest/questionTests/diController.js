@@ -205,3 +205,54 @@ export const deleteDI = async (req, res) => {
     });
   }
 };
+/* ===================== SUBMIT DI ===================== */
+export const submitDI = async (req, res) => {
+  try {
+    const { testId, answers } = req.body; 
+    // answers: array of { questionId, ... }
+
+    // Mock Scoring Logic
+    let totalFluency = 0;
+    let totalPronunciation = 0;
+    let totalContent = 0;
+    const count = answers?.length || 0;
+
+    const results = count > 0 ? answers.map(a => {
+        // Random scores between 10 and 90
+        const fluency = Math.floor(Math.random() * (90 - 40) + 40);
+        const pronunciation = Math.floor(Math.random() * (90 - 40) + 40);
+        const content = Math.floor(Math.random() * (90 - 40) + 40);
+        
+        totalFluency += fluency;
+        totalPronunciation += pronunciation;
+        totalContent += content;
+
+        return {
+            questionId: a.questionId,
+            fluency,
+            pronunciation,
+            content,
+            score: Math.round((fluency + pronunciation + content) / 3)
+        };
+    }) : [];
+
+    const resultData = {
+        sectionScores: {
+            fluency: count > 0 ? Math.round(totalFluency / count) : 0,
+            pronunciation: count > 0 ? Math.round(totalPronunciation / count) : 0,
+            content: count > 0 ? Math.round(totalContent / count) : 0,
+        },
+        overallScore: count > 0 ? Math.round((totalFluency + totalPronunciation + totalContent) / (count * 3)) : 0,
+        questionResults: results
+    };
+
+    res.json({
+        success: true,
+        data: resultData
+    });
+
+  } catch (error) {
+    console.error("Submit DI Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

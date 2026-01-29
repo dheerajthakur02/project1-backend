@@ -207,3 +207,49 @@ export const deleteRS = async (req, res) => {
     });
   }
 };
+/* ===================== SUBMIT RS ===================== */
+export const submitRS = async (req, res) => {
+  try {
+    const { testId, answers } = req.body; 
+    // answers: array of { questionId, ... }
+
+    // Mock Scoring Logic
+    let totalFluency = 0;
+    let totalPronunciation = 0;
+    const count = answers?.length || 0;
+
+    const results = count > 0 ? answers.map(a => {
+        // Random scores between 10 and 90 (PTE scale)
+        const fluency = Math.floor(Math.random() * (90 - 40) + 40);
+        const pronunciation = Math.floor(Math.random() * (90 - 40) + 40);
+        
+        totalFluency += fluency;
+        totalPronunciation += pronunciation;
+
+        return {
+            questionId: a.questionId,
+            fluency,
+            pronunciation,
+            score: Math.round((fluency + pronunciation) / 2)
+        };
+    }) : [];
+
+    const resultData = {
+        sectionScores: {
+            fluency: count > 0 ? Math.round(totalFluency / count) : 0,
+            pronunciation: count > 0 ? Math.round(totalPronunciation / count) : 0,
+        },
+        overallScore: count > 0 ? Math.round((totalFluency + totalPronunciation) / (count * 2)) : 0,
+        questionResults: results
+    };
+
+    res.json({
+        success: true,
+        data: resultData
+    });
+
+  } catch (error) {
+    console.error("Submit RS Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
