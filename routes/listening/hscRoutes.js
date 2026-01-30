@@ -16,6 +16,7 @@ const upload = multer({ dest: "uploads/" });
 
 // Question routes
 router.post("/add", upload.single("audio"), addHighlightSummaryQuestion);
+router.get("/", getHighlightSummaryQuestions);
 router.get("/questions/userId", getHighlightSummaryQuestions);
 router.put("/questions/:id", upload.single("audio"), updateQuestion)
 router.delete("/:id", deleteQuestion)

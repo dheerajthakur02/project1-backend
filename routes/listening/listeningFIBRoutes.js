@@ -13,6 +13,7 @@ const router = express.Router();
 
 // Question routes
 router.post("/add", upload.single("audio"), addListeningFIBQuestion);
+router.get("/", getListeningFIBQuestionsWithAttempts);
 router.get("/questions/:userId", getListeningFIBQuestionsWithAttempts);
 
 router.put("/:id", updateListeningFIBQuestion)

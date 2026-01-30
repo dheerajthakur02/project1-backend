@@ -6,6 +6,7 @@ import {
   deleteQuestion,
   getQuestionsWithAttempts,
   createShortAnswerAttempt,
+  getAllQuestions,
 } from "../controllers/shortAnswerController.js";
 import { authorize } from "../middlewares/authMiddleware.js";
 // import { createShortAnswerAttempt } from "../controllers/shortAnswerAttempt.controller.js";
@@ -20,6 +21,7 @@ const router = express.Router();
 router.post("/add", upload.single("audio"), addQuestion);
 
 // Get questions with user attempts
+router.get("/all", getAllQuestions);
 router.get("/get/:userId", getQuestionsWithAttempts);
 
 // Update question

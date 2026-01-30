@@ -40,9 +40,11 @@ export const addListeningFIBQuestion = async (req, res) => {
 export const getListeningFIBQuestionsWithAttempts = async (req, res) => {
   try {
     const { userId } = req.params;
-
+    
+    // If no userId, return all questions without attempt stats
     if (!userId) {
-      return res.status(400).json({ success: false, message: "userId is required" });
+       const questions = await ListeningFIBQuestion.find().sort({ createdAt: -1 });
+       return res.status(200).json({ success: true, data: questions });
     }
 
     const userObjectId = new mongoose.Types.ObjectId(userId);

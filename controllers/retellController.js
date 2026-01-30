@@ -13,6 +13,16 @@ dotenv.config();
 const deepgram = createClient(process.env.API_KEY);
 
 
+
+export const getAllQuestions = async (req, res) => {
+    try {
+        const questions = await RetellLectureQuestion.find().sort({ createdAt: -1 });
+        res.status(200).json({ success: true, data: questions });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 export const addRetellQuestion = async (req, res) => {
   try {
      const { title, prepareTime, answerTime, difficulty } = req.body;

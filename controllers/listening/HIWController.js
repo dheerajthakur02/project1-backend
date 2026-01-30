@@ -118,9 +118,11 @@ export const getHIWQuestions  = async (req, res) => {
     const { userId } = req.params;
 
     if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: "userId is required",
+      const questions = await HIWQuestion.find().sort({ createdAt: -1 });
+      return res.status(200).json({
+        success: true,
+        count: questions.length,
+        data: questions,
       });
     }
 

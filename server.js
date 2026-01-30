@@ -123,7 +123,7 @@ app.use("/api/hiw", HIWRoutes);
 app.use("/api/select-missing-word", selectMissingWordRoute);
 app.use("/api/choose-single-answer", chooseSingleAnswerRoute);
 
-app.use("/api/hsc", hscRoutes);
+app.use("/api/hcs", hscRoutes);
 app.use("/api/summarize-text", summarizeTextRoutes);
 app.use("/api/essay", essayRoutes);
 app.use("/api/sst", sstRoutes);

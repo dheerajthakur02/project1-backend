@@ -1,6 +1,6 @@
 import express from "express";
 import { upload } from "../middlewares/upload.js";
-import { addRetellQuestion, createRetellAttempt, deleteRetell, getRetellLectureById, getRetellQuestionsWithAttempts, updateRetellQuestion } from "../controllers/retellController.js";
+import { addRetellQuestion, createRetellAttempt, deleteRetell, getRetellLectureById, getRetellQuestionsWithAttempts, updateRetellQuestion, getAllQuestions } from "../controllers/retellController.js";
 import { authorize } from "../middlewares/authMiddleware.js";
 import { createRepeatAttempt } from "../controllers/attemptRepeat.controller.js";
 
@@ -8,6 +8,7 @@ const router = express.Router();
 
 // router.use(authorize());
 router.post("/add", upload.single("audio"), addRetellQuestion);
+router.get("/all", getAllQuestions);
 router.get("/get/:userId", getRetellQuestionsWithAttempts);
 router.put("/:id", upload.single("audio"), updateRetellQuestion);
 router.get("/:id", getRetellLectureById)

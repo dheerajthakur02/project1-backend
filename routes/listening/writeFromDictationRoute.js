@@ -17,6 +17,7 @@ const router = express.Router();
 router.post("/create", upload.single("audio"), createQuestion);
 
 // Get all questions
+router.get("/", getQuestions);
 router.get("/questions/:userId", getQuestions);
 
 // Submit attempt

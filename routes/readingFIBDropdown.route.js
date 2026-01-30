@@ -16,6 +16,7 @@ import { checkPracticeLimit } from "../middlewares/practiceLimitMiddleware.js";
 const router = express.Router();
 
 router.post("/add", addQuestion);
+router.get("/", getQuestions);
 router.get("/get/:userId", getQuestions); // To get list with status
 router.get("/:id", getQuestionById);
 router.post("/submit", checkPracticeLimit, submitAttempt);

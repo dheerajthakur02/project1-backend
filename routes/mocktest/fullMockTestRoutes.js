@@ -18,7 +18,7 @@ const router = express.Router();
  * @desc    Generate a new Full Mock Test with unique questions
  * @access  Admin (or Protected)
  */
-router.post("/", createFullMockTest);
+router.post("/create", createFullMockTest);
 
 /**
  * @route   GET /api/mocktest/full

@@ -17,6 +17,7 @@ const upload = multer({ dest: "uploads/" });
 import { checkPracticeLimit } from "../../middlewares/practiceLimitMiddleware.js";
 
 router.post("/add", upload.single("audio"), addQuestion);
+router.get("/", getQuestions);
 router.get("/questions/:userId", getQuestions);
 router.get("/question/:id", getQuestionById);
 router.delete("/:id", deleteQuestion)

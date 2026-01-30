@@ -3,6 +3,15 @@ import { SummarizeWrittenAttempt, SummarizeTextQuestion } from "../../models/wri
 import mongoose from "mongoose";
 import stringSimilarity from "string-similarity";
 
+export const getAllQuestions = async (req, res) => {
+  try {
+    const questions = await SummarizeTextQuestion.find().sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: questions });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const createSummarizeTextQuestion = async (req, res) => {
   try {
     const question = await SummarizeTextQuestion.create(req.body);

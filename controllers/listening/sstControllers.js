@@ -7,6 +7,15 @@ import { cloudinary } from "../../config/cloudinary.js";
 dotenv.config();
 const deepgram = createClient(process.env.API_KEY);
 
+export const getAllQuestions = async (req, res) => {
+  try {
+    const questions = await SSTQuestion.find().sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: questions });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const createQuestion = async (req, res) => {
   try {
     const { title, difficulty, keywords, answer } = req.body;

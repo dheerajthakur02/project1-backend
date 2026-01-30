@@ -58,7 +58,10 @@ export const createQuestion = async (req, res) => {
 export const getQuestions = async (req, res) => {
     try {
         const { userId } = req.params;
-        if (!userId) return res.status(400).json({ message: "userId is required" });
+        if (!userId) {
+             const questions = await WriteFromDictationQuestion.find().sort({ createdAt: -1 });
+             return res.status(200).json({ success: true, data: questions });
+        }
         const userObjectId = new mongoose.Types.ObjectId(userId);
 
         const questions = await WriteFromDictationQuestion.aggregate([

@@ -80,8 +80,16 @@ export const addSelectMissingWordQuestion = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    /* -------------------- 1. Validate userId -------------------- */
-    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+    /* -------------------- 1. Check if userId provided -------------------- */
+    if (!userId) {
+      const questions = await SelectMissingWordQuestion.find().sort({ createdAt: -1 });
+      return res.status(200).json({
+        success: true,
+        data: questions
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({
         success: false,
         message: "Valid userId is required",

@@ -9,6 +9,7 @@ import { createHIWQuestion, deleteQuestion, getHIWQuestions, submitHIWAttempt, u
 import { checkPracticeLimit } from '../../middlewares/practiceLimitMiddleware.js';
 
 router.post('/add', upload.single('audio'), createHIWQuestion);
+router.get("/", getHIWQuestions);
 router.get('/:userId', getHIWQuestions);
 router.delete("/:id", deleteQuestion)
 

@@ -1,6 +1,15 @@
 import { EssayAttempt, WriteEssayQuestion } from "../../models/writing/Essay.js";
 import mongoose from "mongoose";
 
+export const getAllQuestions = async (req, res) => {
+  try {
+    const questions = await WriteEssayQuestion.find().sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: questions });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const createEssayQuestion = async (req, res) => {
   try {
     const question = await WriteEssayQuestion.create(req.body);

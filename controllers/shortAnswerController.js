@@ -8,6 +8,15 @@ import {
 /* =====================================================
    ADD SHORT ANSWER QUESTION
 ===================================================== */
+export const getAllQuestions = async (req, res) => {
+    try {
+        const questions = await ShortAnswerQuestion.find().sort({ createdAt: -1 });
+        res.status(200).json({ success: true, data: questions });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 export const addQuestion = async (req, res) => {
   try {
     const { title, prepareTime, answerTime, answer, difficulty } = req.body;
