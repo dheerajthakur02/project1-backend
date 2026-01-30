@@ -10,7 +10,7 @@ import { HighlightSummaryQuestion } from "../../models/listening/HCSQuestion.js"
 import { HIWQuestion } from "../../models/listening/HIW.js";
 
 
-
+import mongoose from "mongoose";
 
 /**
  * ✅ CREATE READING SECTION
@@ -76,7 +76,9 @@ export const createReading = async (req, res) => {
 
     // 5️⃣ Check if all provided question IDs exist in their respective collections
     const checkQuestionsExist = async (ids, Model) => {
+      
       const existing = await Model.find({ _id: { $in: ids } }).select("_id");
+   
       return existing.map((q) => q._id.toString());
     };
 
@@ -471,7 +473,7 @@ export const getUnusedReadingQuestions = async (req, res) => {
     // Fetch all questions of each type and filter out the used ones
     const unusedSummarizeWrittenText = await SummarizeTextQuestion.find({ _id: { $nin: Array.from(usedSummarizeWrittenTextIds) } });
     const unusedFillInTheBlanksDropdown = await ReadingFIBDropdown.find({ _id: { $nin: Array.from(usedFillInTheBlanksDropdownIds) } });
-    const unusedMultipleChoiceMultiple = await ReadingMultiChoiceSingleAnswer.find({ _id: { $nin: Array.from(usedMultipleChoiceMultipleIds) } });
+    const unusedMultipleChoiceMultiple = await ReadingMultiChoiceMultiAnswer.find({ _id: { $nin: Array.from(usedMultipleChoiceMultipleIds) } });
     const unusedReorderParagraphs = await ReadingReorder.find({ _id: { $nin: Array.from(usedReorderParagraphsIds) } });
     const unusedFillInTheBlanksWithDragDrop = await ReadingFIBDragDrop.find({ _id: { $nin: Array.from(usedFillInTheBlanksWithDragDropIds) } });
     const unusedMultipleChoiceSingle = await ReadingMultiChoiceSingleAnswer.find({ _id: { $nin: Array.from(usedMultipleChoiceSingleIds) } });
@@ -494,6 +496,32 @@ export const getUnusedReadingQuestions = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const deleteQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedQuestion = await Reading.findByIdAndDelete(id);
+
+    if (!deletedQuestion) {
+      return res.status(404).json({
+        success: false,
+        message: "Question not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Question deleted successfully",
+      data: deletedQuestion,
+    });
+  } catch (error) {
+    return res.status(500).json({
       success: false,
       message: error.message,
     });

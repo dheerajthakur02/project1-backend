@@ -7,7 +7,8 @@ import {
   calculateReadingResult,
   getUserReadingResults,
   getReadingResultById,
-  getUnusedReadingQuestions
+  getUnusedReadingQuestions,
+  deleteQuestion
 } from "../../controllers/mocktest/readingController.js"
 import { authorize } from "../../middlewares/authMiddleware.js";
 
@@ -43,5 +44,7 @@ router.get("/results/my", authorize(), getUserReadingResults);
 router.get("/result/:id", getReadingResultById);
 
 router.get("/get/unused", getUnusedReadingQuestions)
+
+router.delete("/:id", deleteQuestion)
 
 export default router;

@@ -191,6 +191,7 @@ export const getUnusedSpeakingQuestions = async (req, res) => {
 };
 
 
+
 // utils/scoringHelper.js
 
 /**
@@ -345,5 +346,31 @@ export const getSpeakingResultById = async (req, res) => {
     res.status(200).json({ success: true, data: result });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const deleteQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedQuestion = await Speaking.findByIdAndDelete(id);
+
+    if (!deletedQuestion) {
+      return res.status(404).json({
+        success: false,
+        message: "Question not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Question deleted successfully",
+      data: deletedQuestion,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };

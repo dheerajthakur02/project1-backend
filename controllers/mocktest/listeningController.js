@@ -7,9 +7,40 @@ import { HighlightSummaryQuestion } from "../../models/listening/HCSQuestion.js"
 import { SelectMissingWordQuestion } from "../../models/listening/SelectMissingWord.js";
 import { WriteFromDictationQuestion } from "../../models/listening/WriteFromDictation.js";
 import { HIWQuestion } from "../../models/listening/HIW.js";
-import { ReadingMultiChoiceSingleAnswer } from "../../models/readingMultiChoiceSingleAnswer.model.js";
-import { ReadingMultiChoiceMultiAnswer } from "../../models/readingMultiChoiceMultiAnswer.model.js";
+
+
 // Listening Controllers
+import mongoose from "mongoose";
+import { ListeningMultiChoiceMultiAnswer } from "../../models/listening/ListeningMultiChoiceMultiAnswer.js";
+import { ChooseSingleAnswerQuestion } from "../../models/listening/ChooseSingleAnswer.js";
+
+export const deleteQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedQuestion = await Listening.findByIdAndDelete(id);
+
+    if (!deletedQuestion) {
+      return res.status(404).json({
+        success: false,
+        message: "Question not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Question deleted successfully",
+      data: deletedQuestion,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
 
 export const createListening = async (req, res) => {
   try {
@@ -77,10 +108,10 @@ export const createListening = async (req, res) => {
     };
 
     const existingSummarizeSpokenText = await checkQuestionsExist(summarizeSpokenTextQuestions, SSTQuestion);
-    const existingMultipleChoiceMultiple = await checkQuestionsExist(multipleChoiceMultiple, ReadingMultiChoiceMultiAnswer);
+    const existingMultipleChoiceMultiple = await checkQuestionsExist(multipleChoiceMultiple, ListeningMultiChoiceMultiAnswer );
     const existingFillInTheBlanks = await checkQuestionsExist(fillInTheBlanks, ListeningFIBQuestion);
     const existingHighlightIncorrectSummary = await checkQuestionsExist(highlightIncorrectSummary, HighlightSummaryQuestion);
-    const existingMultipleChoiceSingle = await checkQuestionsExist(multipleChoiceSingle, ReadingMultiChoiceSingleAnswer);
+    const existingMultipleChoiceSingle = await checkQuestionsExist(multipleChoiceSingle, ChooseSingleAnswerQuestion);
     const existingSelectMissingWord = await checkQuestionsExist(selectMissingWord, SelectMissingWordQuestion);
     const existingHighlightIncorrectWords = await checkQuestionsExist(highLightIncorrectWords, HIWQuestion);
     const existingWriteFromDictation = await checkQuestionsExist(writeFromDictation, WriteFromDictationQuestion);
@@ -190,14 +221,14 @@ export const getListeningById = async (req, res) => {
     const { id } = req.params;
 
     const listeningSection = await Listening.findById(id)
-      .populate("summarizeSpokenTextQuestions")
-      .populate("multipleChoiceMultiple")
-      .populate("fillInTheBlanks")
-      .populate("highlightIncorrectSummary")
-      .populate("multipleChoiceSingle")
-      .populate("selectMissingWord")
-      .populate("highLightIncorrectWords")
-      .populate("writeFromDictation");
+      // .populate("summarizeSpokenTextQuestions")
+       .populate("multipleChoiceMultiple")
+      // .populate("fillInTheBlanks")
+      // .populate("highlightIncorrectSummary")
+       .populate("multipleChoiceSingle")
+      // .populate("selectMissingWord")
+      // .populate("highLightIncorrectWords")
+      // .populate("writeFromDictation");
 
     if (!listeningSection) {
       return res.status(404).json({
@@ -518,10 +549,10 @@ export const getUnusedListeningQuestions = async (req, res) => {
 
     // Fetch all questions of each type and filter out the used ones
     const unusedSummarizeSpokenText = await SSTQuestion.find({ _id: { $nin: Array.from(usedSummarizeSpokenTextIds) } });
-    const unusedMultipleChoiceMultiple = await ReadingMultiChoiceMultiAnswer.find({ _id: { $nin: Array.from(usedMultipleChoiceMultipleIds) } });
+    const unusedMultipleChoiceMultiple = await ListeningMultiChoiceMultiAnswer.find({ _id: { $nin: Array.from(usedMultipleChoiceMultipleIds) } });
     const unusedFillInTheBlanks = await ListeningFIBQuestion.find({ _id: { $nin: Array.from(usedFillInTheBlanksIds) } });
     const unusedHighlightIncorrectSummary = await HighlightSummaryQuestion.find({ _id: { $nin: Array.from(usedHighlightIncorrectSummaryIds) } });
-    const unusedMultipleChoiceSingle = await ReadingMultiChoiceSingleAnswer.find({ _id: { $nin: Array.from(usedMultipleChoiceSingleIds) } });
+    const unusedMultipleChoiceSingle = await ChooseSingleAnswerQuestion.find({ _id: { $nin: Array.from(usedMultipleChoiceSingleIds) } });
     const unusedSelectMissingWord = await SelectMissingWordQuestion.find({ _id: { $nin: Array.from(usedSelectMissingWordIds) } });
     const unusedHighlightIncorrectWords = await HIWQuestion.find({ _id: { $nin: Array.from(usedHighlightIncorrectWordsIds) } });
     const unusedWriteFromDictation = await WriteFromDictationQuestion.find({ _id: { $nin: Array.from(usedWriteFromDictationIds) } });

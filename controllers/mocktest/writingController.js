@@ -2,8 +2,13 @@ import Writing, { WritingResult } from "../../models/mocktest/Writing.js";
 import mongoose from "mongoose";
 import { WriteEssayQuestion } from "../../models/writing/Essay.js";
 import { WriteFromDictationQuestion } from "../../models/listening/WriteFromDictation.js";
+import { SSTQuestion } from "../../models/listening/SSTQuestion.js";
+import { SummarizeTextQuestion } from "../../models/writing/SummarizeText.js";
 
-/* ===================== CREATE WRITING ===================== */
+
+
+
+/* ===================== CREATE WRITING SECTION ===================== */
 export const createWriting = async (req, res) => {
   try {
     const {
@@ -22,7 +27,7 @@ export const createWriting = async (req, res) => {
       writeFromDictation,
     });
 
-    await writing.save(); // 🔒 max 20 validated by schema
+    await writing.save(); // 🔒 max 20 validated by schema (if applicable in your Writing model)
 
     res.status(201).json({
       success: true,
@@ -37,7 +42,7 @@ export const createWriting = async (req, res) => {
   }
 };
 
-/* ===================== GET ALL WRITING ===================== */
+/* ===================== GET ALL WRITING SECTIONS ===================== */
 export const getAllWriting = async (req, res) => {
   try {
     const writingSections = await Writing.find().sort({ createdAt: -1 });
@@ -55,7 +60,7 @@ export const getAllWriting = async (req, res) => {
   }
 };
 
-/* ===================== GET WRITING BY ID ===================== */
+/* ===================== GET WRITING SECTION BY ID (POPULATED) ===================== */
 export const getWritingById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -85,7 +90,7 @@ export const getWritingById = async (req, res) => {
   }
 };
 
-/* ===================== UPDATE WRITING ===================== */
+/* ===================== UPDATE WRITING SECTION ===================== */
 export const updateWriting = async (req, res) => {
   try {
     const { id } = req.params;
@@ -119,7 +124,7 @@ export const updateWriting = async (req, res) => {
   }
 };
 
-/* ===================== DELETE WRITING (OPTIONAL) ===================== */
+/* ===================== DELETE WRITING SECTION ===================== */
 export const deleteWriting = async (req, res) => {
   try {
     const { id } = req.params;
@@ -145,14 +150,68 @@ export const deleteWriting = async (req, res) => {
   }
 };
 
+/* ===================== GET UNUSED WRITING QUESTIONS ===================== */
+export const getUnusedWritingQuestions = async (req, res) => {
+  try {
+    const [
+      allSummarizeWrittenText,
+      allWriteEssay,
+      allSummarizeSpokenText,
+      allWriteFromDictation,
+      existingWritingSections
+    ] = await Promise.all([
+      SummarizeTextQuestion.find({}),
+      WriteEssayQuestion.find({}),
+      SSTQuestion.find({}),
+      WriteFromDictationQuestion.find({}),
+      Writing.find({})
+    ]);
+
+    const usedSummarizeWrittenTextIds = new Set();
+    const usedWriteEssayIds = new Set();
+    const usedSummarizeSpokenTextIds = new Set();
+    const usedWriteFromDictationIds = new Set();
+
+    existingWritingSections.forEach(section => {
+      section.summarizeWrittenText.forEach(id => usedSummarizeWrittenTextIds.add(id.toString()));
+      section.writeEssay.forEach(id => usedWriteEssayIds.add(id.toString()));
+      section.summarizeSpokenText.forEach(id => usedSummarizeSpokenTextIds.add(id.toString()));
+      section.writeFromDictation.forEach(id => usedWriteFromDictationIds.add(id.toString()));
+    });
+
+    const unusedSummarizeWrittenText = allSummarizeWrittenText.filter(q => !usedSummarizeWrittenTextIds.has(q._id.toString()));
+    const unusedWriteEssay = allWriteEssay.filter(q => !usedWriteEssayIds.has(q._id.toString()));
+    const unusedSummarizeSpokenText = allSummarizeSpokenText.filter(q => !usedSummarizeSpokenTextIds.has(q._id.toString()));
+    const unusedWriteFromDictation = allWriteFromDictation.filter(q => !usedWriteFromDictationIds.has(q._id.toString()));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        summarizeWrittenText: unusedSummarizeWrittenText,
+        writeEssay: unusedWriteEssay,
+        summarizeSpokenText: unusedSummarizeSpokenText,
+        writeFromDictation: unusedWriteFromDictation,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching unused writing questions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused writing questions",
+    });
+  }
+};
 
 
+/* ============================================================
+   MOCK TEST SUBMISSION & SCORING LOGIC (from your provided code)
+   ============================================================ */
 
-const cleanText = (text) => 
+const cleanText = (text) =>
   text ? text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").trim() : "";
 
 /**
- * MAIN CONTROLLER
+ * MAIN CONTROLLER FOR SUBMITTING FULL WRITING MOCK TEST
  */
 export const submitFullWritingMockTest = async (req, res) => {
   try {
@@ -198,7 +257,7 @@ export const submitFullWritingMockTest = async (req, res) => {
       cumulativeWritingScore += scoreDetails.writingScore;
     }
 
-    const overallScore = processedResults.length > 0 
+    const overallScore = processedResults.length > 0
       ? Math.round(cumulativeWritingScore / processedResults.length)
       : 0;
 
@@ -222,7 +281,7 @@ export const submitFullWritingMockTest = async (req, res) => {
 };
 
 /* ============================================================
-   FIXED SCORING HELPERS (Zero-Logic Added)
+   FIXED SCORING HELPERS (Zero-Logic Added) - Your original logic
    ============================================================ */
 
 async function processSWT(id, text) {
@@ -233,11 +292,11 @@ async function processSWT(id, text) {
 
   // Form (Max 1), Content (Max 2), Grammar (Max 2), Vocabulary (Max 2) = Total 7
   let form = (wordCount >= 5 && wordCount <= 75) ? 1 : 0;
-  let content = wordCount > 30 ? 2 : 1; 
-  let grammar = text.includes('.') ? 2 : 1; 
+  let content = wordCount > 30 ? 2 : 1;
+  let grammar = text.includes('.') ? 2 : 1;
   let vocabulary = 1;
 
-  let totalRaw = form + content + grammar + vocabulary; 
+  let totalRaw = form + content + grammar + vocabulary;
   return { content, grammar, writingScore: (totalRaw / 7) * 90 };
 }
 
@@ -263,13 +322,13 @@ async function processEssay(id, text) {
     if (ratio > 0.6) content = 3;
     else if (ratio > 0.2) content = 2;
     else content = 1;
-  } else { 
-    content = 2; 
+  } else {
+    content = 2;
   }
 
   // 3. Grammar (Max 2)
   let grammar = (text.includes('.') && text.charAt(0) === text.charAt(0).toUpperCase()) ? 2 : 1;
-  
+
   // 4. Structure/Vocab/Spelling (Simplified Max 8)
   let other = wordCount > 150 ? 6 : 3;
 
@@ -285,7 +344,7 @@ async function processSST(id, text) {
 
   let form = (wordCount >= 50 && wordCount <= 70) ? 2 : 1;
   let grammar = /[A-Z]/.test(text[0]) && /[.!?]$/.test(text) ? 2 : 1;
-  let content = wordCount > 40 ? 3 : 1; 
+  let content = wordCount > 40 ? 3 : 1;
   let vocab = 2;
 
   let totalRaw = form + grammar + content + vocab; // Max 12
@@ -301,7 +360,7 @@ async function processWFD(id, text) {
 
   let correctCount = 0;
   const tempOriginal = [...originalWords];
-  
+
   userWords.forEach(uw => {
     const idx = tempOriginal.indexOf(uw);
     if (idx !== -1) {
@@ -310,41 +369,14 @@ async function processWFD(id, text) {
     }
   });
 
-  const writingScore = originalWords.length > 0 
-    ? (correctCount / originalWords.length) * 90 
+  const writingScore = originalWords.length > 0
+    ? (correctCount / originalWords.length) * 90
     : 0;
 
   return { content: correctCount, grammar: 0, writingScore };
 }
 
 
-/* --- Helper Logic (Extracted from your provided code) --- */
-
-async function calculateEssayScore(ans) {
-    const { answer: essayText } = ans;
-    const words = essayText.trim().split(/\s+/).filter(w => w.length > 0);
-    const wordCount = words.length;
-
-    // A. Form (Max 2)
-    let form = (wordCount >= 200 && wordCount <= 300) ? 2 : 1;
-    // B. Grammar (Max 2)
-    const sentences = essayText.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    const correctSentences = sentences.filter(s => /^[A-Z]/.test(s.trim())).length;
-    let grammar = (correctSentences / sentences.length > 0.8) ? 2 : 1;
-    
-    const rawScore = form + grammar + 5; // Simplified for brevity
-    return { content: 3, grammar, vocabulary: 2, rawScore, writingScore: (rawScore / 15) * 90 };
-}
-
-async function calculateSWTScore(ans) {
-    const words = ans.answer.trim().split(/\s+/);
-    const wordCount = words.length;
-    const form = wordCount >= 5 && wordCount <= 75 ? 2 : 0;
-    const rawScore = form + 5; // Placeholder content score
-    return { content: 2, grammar: 2, vocabulary: 1, rawScore, writingScore: (rawScore / 7) * 90 };
-}
-
-// Add similar helpers for SST and WFD using the logic you already wrote...
 /* ===================== GET USER WRITING RESULTS ===================== */
 export const getUserWritingResults = async (req, res) => {
   try {
@@ -372,7 +404,7 @@ export const getWritingResultById = async (req, res) => {
   try {
     const result = await WritingResult.findById(req.params.resultId);
     if (!result) return res.status(404).json({ success: false, message: "Not found" });
-    
+
     res.json({ success: true, data: result });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

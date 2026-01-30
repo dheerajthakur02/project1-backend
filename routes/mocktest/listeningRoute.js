@@ -8,7 +8,8 @@ import { createListening,
   getMyListeningResults,
   getResultsByListeningId,
   getListeningResultById,
-  getUnusedListeningQuestions
+  getUnusedListeningQuestions,
+  deleteQuestion
 } from "../../controllers/mocktest/listeningController.js";
 
 import { authorize } from "../../middlewares/authMiddleware.js";
@@ -28,5 +29,7 @@ router.get("/result/test/:listeningId", getResultsByListeningId);
 router.get("/result/:id", getListeningResultById);
 
 router.get("/get/unused", getUnusedListeningQuestions)
+
+router.delete("/:id", deleteQuestion)
 
 export default router;
