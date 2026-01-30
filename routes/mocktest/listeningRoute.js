@@ -7,7 +7,8 @@ import { createListening,
   submitListeningResult,
   getMyListeningResults,
   getResultsByListeningId,
-  getListeningResultById
+  getListeningResultById,
+  getUnusedListeningQuestions
 } from "../../controllers/mocktest/listeningController.js";
 
 import { authorize } from "../../middlewares/authMiddleware.js";
@@ -25,5 +26,7 @@ router.post("/result", submitListeningResult);
 router.get("/result/my", authorize(), getMyListeningResults);
 router.get("/result/test/:listeningId", getResultsByListeningId);
 router.get("/result/:id", getListeningResultById);
+
+router.get("/get/unused", getUnusedListeningQuestions)
 
 export default router;
