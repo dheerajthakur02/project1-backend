@@ -1,5 +1,5 @@
 import express from "express";
-import { createWriting, deleteWriting, getAllWriting, getWritingById, getWritingResultById, submitFullWritingMockTest, updateWriting, getUserWritingResults } from "../../controllers/mocktest/writingController.js";
+import { createWriting, deleteWriting, getAllWriting, getWritingById, getWritingResultById, submitFullWritingMockTest, updateWriting, getUserWritingResults, getUnusedWritingQuestions } from "../../controllers/mocktest/writingController.js";
 import { authorize } from "../../middlewares/authMiddleware.js";
 
 
@@ -15,5 +15,8 @@ router.post("/attempt", submitFullWritingMockTest);
 // In your routes/writingRoutes.js
 router.get("/result/:resultId", getWritingResultById);
 router.get("/results/my", authorize(), getUserWritingResults);
+
+
+router.get("/get/unused", getUnusedWritingQuestions)
 
 export default router;

@@ -1,6 +1,14 @@
 import  Speaking, { SpeakingResult } from "../../models/mocktest/Speaking.js";
 
 
+import Question from "../../models/repeat.model.js";
+import { ImageQuestion } from "../../models/image.model.js"
+import {
+  RetellLectureQuestion
+} from "../../models/retell.model.js";
+import { SSTQuestion } from "../../models/listening/SSTQuestion.js";
+import { HIWQuestion } from "../../models/listening/HIW.js";
+import ReadAloud from "../../models/readAloud.model.js"
 /**
  * ✅ CREATE SPEAKING SECTION
  */
@@ -120,6 +128,68 @@ export const updateSpeaking = async (req, res) => {
     });
   }
 };
+
+export const getUnusedSpeakingQuestions = async (req, res) => {
+  try {
+
+
+    // Find all questions currently used in any Speaking section
+    const usedQuestionsInSpeaking = await Speaking.find({}, {
+      readAloudQuestions: 1,
+      repeatSentenceQuestions: 1,
+      describeImageQuestions: 1,
+      reTellLectureQuestions: 1,
+      summarizeSpokenTextQuestions: 1,
+      highlightIncorrectWordsQuestions: 1,
+      _id: 0
+    });
+
+ 
+
+    const usedReadAloudIds = new Set();
+    const usedRepeatSentenceIds = new Set();
+    const usedDescribeImageIds = new Set();
+    const usedReTellLectureIds = new Set();
+    const usedSummarizeSpokenTextIds = new Set();
+    const usedHighlightIncorrectWordsIds = new Set();
+
+    usedQuestionsInSpeaking.forEach(speaking => {
+      speaking.readAloudQuestions.forEach(id => usedReadAloudIds.add(id.toString()));
+      speaking.repeatSentenceQuestions.forEach(id => usedRepeatSentenceIds.add(id.toString()));
+      speaking.describeImageQuestions.forEach(id => usedDescribeImageIds.add(id.toString()));
+      speaking.reTellLectureQuestions.forEach(id => usedReTellLectureIds.add(id.toString()));
+      speaking.summarizeSpokenTextQuestions.forEach(id => usedSummarizeSpokenTextIds.add(id.toString()));
+      speaking.highlightIncorrectWordsQuestions.forEach(id => usedHighlightIncorrectWordsIds.add(id.toString()));
+    });
+
+    // Fetch all questions of each type and filter out the used ones
+    const unusedReadAloud = await ReadAloud.find({ _id: { $nin: Array.from(usedReadAloudIds) } });
+    const unusedRepeatSentence = await Question.find({ _id: { $nin: Array.from(usedRepeatSentenceIds) } });
+    const unusedDescribeImage = await ImageQuestion.find({ _id: { $nin: Array.from(usedDescribeImageIds) } });
+    const unusedReTellLecture = await RetellLectureQuestion.find({ _id: { $nin: Array.from(usedReTellLectureIds) } });
+    const unusedSummarizeSpokenText = await SSTQuestion.find({ _id: { $nin: Array.from(usedSummarizeSpokenTextIds) } });
+    const unusedHighlightIncorrectWords = await HIWQuestion.find({ _id: { $nin: Array.from(usedHighlightIncorrectWordsIds) } });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        readAloud: unusedReadAloud,
+        repeatSentence: unusedRepeatSentence,
+        describeImage: unusedDescribeImage,
+        reTellLecture: unusedReTellLecture,
+        summarizeSpokenText: unusedSummarizeSpokenText,
+        highlightIncorrectWords: unusedHighlightIncorrectWords,
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 
 
 // utils/scoringHelper.js
@@ -276,5 +346,31 @@ export const getSpeakingResultById = async (req, res) => {
     res.status(200).json({ success: true, data: result });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const deleteQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedQuestion = await Speaking.findByIdAndDelete(id);
+
+    if (!deletedQuestion) {
+      return res.status(404).json({
+        success: false,
+        message: "Question not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Question deleted successfully",
+      data: deletedQuestion,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
