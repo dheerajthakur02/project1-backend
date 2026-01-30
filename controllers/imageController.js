@@ -12,6 +12,13 @@ export const createQuestion = async (req, res) => {
             folder: 'image-questions'
         });
 
+        // Parse keywords if sent as string (from FormData)
+        let parsedKeywords = [];
+        if (req.body.keywords) {
+            // Split by comma, trim whitespace
+            parsedKeywords = req.body.keywords.split(',').map(k => k.trim()).filter(k => k);
+        }
+
         const newQuestion = await ImageQuestion.create({
             title: req.body.title,
             imageUrl: uploaded.secure_url,
@@ -19,7 +26,7 @@ export const createQuestion = async (req, res) => {
             difficulty: req.body.difficulty || 'Medium',
             prepareTime: req.body.prepareTime || 35,
             answerTime: req.body.answerTime || 40,
-            keywords: req.body.keywords || [],
+            keywords: parsedKeywords,
             modelAnswer: req.body.modelAnswer || ""
         });
 
@@ -359,4 +366,22 @@ export const createImageAttempt = async (req, res) => {
       message: error.message
     });
   }
+};
+
+export const deleteQuestion = async (req, res) => {
+    try {
+        const question = await ImageQuestion.findById(req.params.id);
+        if (!question) {
+            return res.status(404).json({ message: "Question not found" });
+        }
+
+        if (question.cloudinaryId) {
+            await cloudinary.uploader.destroy(question.cloudinaryId);
+        }
+
+        await question.deleteOne();
+        res.json({ message: "Deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 };
