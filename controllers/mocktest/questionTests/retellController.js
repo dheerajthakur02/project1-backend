@@ -206,71 +206,33 @@ export const deleteReTell = async (req, res) => {
   }
 };
 
-/* ===================== SUBMIT RETELL ===================== */
-import { SpeakingResult } from "../../../models/mocktest/Speaking.js";
-import stringSimilarity from "string-similarity";
 
-export const submitReTell = async (req, res) => {
+/* ===================== GET UNUSED RETELL LECTURE QUESTIONS ===================== */
+export const getUnusedRetellLectureQuestions = async (req, res) => {
   try {
-    const { testId, answers, userId } = req.body;
-    // answers: array of { questionId, audioUrl }
+    const allRetellLectureQuestions = await RetellLectureQuestion.find({});
+    const existingRetellSections = await RETELL.find({});
 
-    let totalFluency = 0;
-    let totalPronunciation = 0;
-    let totalContent = 0;
-    const count = answers?.length || 0;
-
-    const results = count > 0 ? answers.map(a => {
-        // Mock Scoring for Re-tell Lecture (Audio analysis is complex)
-        // We simulate scores based on random realistic PTE distributions
-        
-        const fluency = Math.floor(Math.random() * (5 - 3) + 3); // 3 to 5
-        const pronunciation = Math.floor(Math.random() * (5 - 3) + 3);
-        const content = Math.floor(Math.random() * (5 - 2) + 2);
-
-        totalFluency += fluency;
-        totalPronunciation += pronunciation;
-        totalContent += content;
-
-        return {
-            questionId: a.questionId,
-            questionType: "RL", // Re-tell Lecture
-            fluencyScore: fluency,
-            pronunciationScore: pronunciation,
-            contentScore: content,
-            score: parseFloat(((fluency + pronunciation + content) / 3).toFixed(1)),
-            userTranscript: "Audio response recorded", // Placeholder
-            audioUrl: a.audioUrl
-        };
-    }) : [];
-
-    const sectionScores = {
-        fluency: count > 0 ? parseFloat((totalFluency / count).toFixed(1)) : 0,
-        pronunciation: count > 0 ? parseFloat((totalPronunciation / count).toFixed(1)) : 0,
-        content: count > 0 ? parseFloat((totalContent / count).toFixed(1)) : 0
-    };
-
-    const overallScore = count > 0 ? parseFloat(((sectionScores.fluency + sectionScores.pronunciation + sectionScores.content) / 3).toFixed(1)) : 0;
-
-    // SAVE TO DB using SpeakingResult
-    const speakingResult = new SpeakingResult({
-        user: req.user?._id || userId,
-        testId: testId,
-        testModel: 'ReTell', 
-        overallScore,
-        sectionScores,
-        scores: results
+    const usedRetellQuestionIds = new Set();
+    existingRetellSections.forEach(section => {
+      section.reTellQuestions.forEach(id => usedRetellQuestionIds.add(id.toString()));
     });
 
-    await speakingResult.save();
+    const unusedRetellLectureQuestions = allRetellLectureQuestions.filter(q =>
+      !usedRetellQuestionIds.has(q._id.toString())
+    );
 
-    res.json({
-        success: true,
-        data: speakingResult
+    res.status(200).json({
+      success: true,
+      data: {
+        reTellLecture: unusedRetellLectureQuestions, // Key for frontend
+      },
     });
-
   } catch (error) {
-    console.error("Submit ReTell Error:", error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error fetching unused Re-tell Lecture questions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused Re-tell Lecture questions",
+    });
   }
 };

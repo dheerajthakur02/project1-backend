@@ -156,67 +156,31 @@ export const deleteSGD = async (req, res) => {
   }
 };
 
-/* ===================== SUBMIT SGD ===================== */
-import { SpeakingResult } from "../../../models/mocktest/Speaking.js";
-
-export const submitSGD = async (req, res) => {
+export const getUnusedSummarizeGroupDiscussionQuestions = async (req, res) => {
   try {
-    const { testId, answers, userId } = req.body;
-    // answers: array of { questionId, audioUrl }
+    const allSGDQuestions = await SummarizeGroupQuestion.find({});
+    const existingSGDSections = await SGD.find({});
 
-    let totalFluency = 0;
-    let totalPronunciation = 0;
-    let totalContent = 0;
-    const count = answers?.length || 0;
-
-    const results = count > 0 ? answers.map(a => {
-        // Mock Scoring for SGD
-        const fluency = Math.floor(Math.random() * (5 - 3) + 3);
-        const pronunciation = Math.floor(Math.random() * (5 - 3) + 3);
-        const content = Math.floor(Math.random() * (5 - 2) + 2);
-
-        totalFluency += fluency;
-        totalPronunciation += pronunciation;
-        totalContent += content;
-
-        return {
-            questionId: a.questionId,
-            questionType: "SGD",
-            fluencyScore: fluency,
-            pronunciationScore: pronunciation,
-            contentScore: content,
-            score: parseFloat(((fluency + pronunciation + content) / 3).toFixed(1)),
-            userTranscript: "Audio response recorded",
-            audioUrl: a.audioUrl
-        };
-    }) : [];
-
-    const sectionScores = {
-        fluency: count > 0 ? parseFloat((totalFluency / count).toFixed(1)) : 0,
-        pronunciation: count > 0 ? parseFloat((totalPronunciation / count).toFixed(1)) : 0,
-        content: count > 0 ? parseFloat((totalContent / count).toFixed(1)) : 0
-    };
-
-    const overallScore = count > 0 ? parseFloat(((sectionScores.fluency + sectionScores.pronunciation + sectionScores.content) / 3).toFixed(1)) : 0;
-
-    const speakingResult = new SpeakingResult({
-        user: req.user?._id || userId,
-        testId: testId,
-        testModel: 'SGD',
-        overallScore,
-        sectionScores,
-        scores: results
+    const usedSGDQuestionIds = new Set();
+    existingSGDSections.forEach(section => {
+      section.summarizeGroupDiscussionQuestions.forEach(id => usedSGDQuestionIds.add(id.toString()));
     });
 
-    await speakingResult.save();
+    const unusedSGDQuestions = allSGDQuestions.filter(q =>
+      !usedSGDQuestionIds.has(q._id.toString())
+    );
 
-    res.json({
-        success: true,
-        data: speakingResult
+    res.status(200).json({
+      success: true,
+      data: {
+        summarizeGroupDiscussion: unusedSGDQuestions, // Key for frontend
+      },
     });
-
   } catch (error) {
-    console.error("Submit SGD Error:", error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error fetching unused Summarize Group Discussion questions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused Summarize Group Discussion questions",
+    });
   }
 };

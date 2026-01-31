@@ -202,3 +202,33 @@ export const deleteWE = async (req, res) => {
     });
   }
 };
+
+
+export const getUnusedWriteEssayQuestions = async (req, res) => {
+  try {
+    const allEssayQuestions = await WriteEssayQuestion.find({});
+    const existingWESections = await WE.find({});
+
+    const usedEssayQuestionIds = new Set();
+    existingWESections.forEach(section => {
+      section.essayQuestions.forEach(id => usedEssayQuestionIds.add(id.toString()));
+    });
+
+    const unusedEssayQuestions = allEssayQuestions.filter(q =>
+      !usedEssayQuestionIds.has(q._id.toString())
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        writeEssay: unusedEssayQuestions, // Key for frontend
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching unused Write Essay questions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused Write Essay questions",
+    });
+  }
+};

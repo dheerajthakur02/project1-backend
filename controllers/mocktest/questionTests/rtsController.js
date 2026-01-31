@@ -85,3 +85,33 @@ export const deleteRTS = async (req, res) => {
   await RTS.findByIdAndDelete(req.params.id);
   res.json({ success: true });
 };
+
+
+export const getUnusedRTSQuestions = async (req, res) => {
+  try {
+    const allRTSQuestions = await RespondSituationQuestion.find({});
+    const existingRTSSections = await RTS.find({});
+
+    const usedRTSQuestionIds = new Set();
+    existingRTSSections.forEach(section => {
+      section.rtsQuestions.forEach(id => usedRTSQuestionIds.add(id.toString()));
+    });
+
+    const unusedRTSQuestions = allRTSQuestions.filter(q =>
+      !usedRTSQuestionIds.has(q._id.toString())
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        rts: unusedRTSQuestions, // Key for frontend
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching unused RTS questions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused RTS questions",
+    });
+  }
+};

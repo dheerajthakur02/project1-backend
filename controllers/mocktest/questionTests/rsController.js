@@ -277,3 +277,33 @@ export const submitRS = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
+export const getUnusedRepeatSentenceQuestions = async (req, res) => {
+  try {
+    const allRepeatQuestions = await RepeatQuestion.find({});
+    const existingRSSections = await RS.find({});
+
+    const usedRepeatQuestionIds = new Set();
+    existingRSSections.forEach(section => {
+      section.repeatSentenceQuestions.forEach(id => usedRepeatQuestionIds.add(id.toString()));
+    });
+
+    const unusedRepeatSentenceQuestions = allRepeatQuestions.filter(q =>
+      !usedRepeatQuestionIds.has(q._id.toString())
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        repeatSentence: unusedRepeatSentenceQuestions, // Key for frontend
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching unused Repeat Sentence questions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused Repeat Sentence questions",
+    });
+  }
+};

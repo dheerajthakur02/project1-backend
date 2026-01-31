@@ -288,3 +288,35 @@ export const submitRL = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+/* ===================== GET UNUSED QUESTIONS FOR ALL TYPES ===================== */
+export const getUnusedQuestionsForAllTypes = async (req, res) => {
+  try {
+    // --- Read Aloud Questions ---
+    const allReadAloudQuestions = await ReadAloudModel.find({});
+    const existingRLSections = await RL.find({});
+
+    const usedReadAloudQuestionIds = new Set();
+    existingRLSections.forEach(section => {
+      section.readAloudQuestions.forEach(id => usedReadAloudQuestionIds.add(id.toString()));
+    });
+
+    const unusedReadAloudQuestions = allReadAloudQuestions.filter(q =>
+      !usedReadAloudQuestionIds.has(q._id.toString())
+    );
+
+   
+    res.status(200).json({
+      success: true,
+      data: {
+        readAloud: unusedReadAloudQuestions,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching unused questions for all types:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused questions for all types",
+    });
+  }
+};

@@ -5,7 +5,7 @@ import {
   getReTellById,
   updateReTell,
   deleteReTell,
-  submitReTell
+  getUnusedRetellLectureQuestions,
 } from "../../../controllers/mocktest/questionTests/retellController.js";
 import { authorize } from "../../../middlewares/authMiddleware.js";
 
@@ -31,4 +31,5 @@ router.put("/:id", updateReTell);
 // Delete Re-tell Lecture
 router.delete("/:id", deleteReTell);
 
+router.get("/get/unused", getUnusedRetellLectureQuestions)
 export default router;

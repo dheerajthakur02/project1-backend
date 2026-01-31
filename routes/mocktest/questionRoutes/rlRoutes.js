@@ -1,5 +1,5 @@
 import express from "express";
-import { createRL, deleteRL, getAllRL, getRLById, updateRL, submitRL } from "../../../controllers/mocktest/questionTests/rlControllers.js";
+import { createRL, deleteRL, getAllRL, getRLById, updateRL, submitRL, getUnusedQuestionsForAllTypes } from "../../../controllers/mocktest/questionTests/rlControllers.js";
 import { authorize } from "../../../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -10,5 +10,5 @@ router.get("/", getAllRL);
 router.get("/:id", getRLById);
 router.put("/:id", updateRL);
 router.delete("/:id", deleteRL);
-
+router.get("/get/unused", getUnusedQuestionsForAllTypes)
 export default router;

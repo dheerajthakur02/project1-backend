@@ -4,7 +4,7 @@ import { createSGD,
   getSGDById,
   updateSGD,
   deleteSGD,
-  submitSGD
+  getUnusedSummarizeGroupDiscussionQuestions
  } from "../../../controllers/mocktest/questionTests/sgdController.js";
 import { authorize } from "../../../middlewares/authMiddleware.js";
 
@@ -45,5 +45,7 @@ router.put("/:id", updateSGD);
  * @desc    Delete SGD
  */
 router.delete("/:id", deleteSGD);
+
+router.get("/get/unused", getUnusedSummarizeGroupDiscussionQuestions)
 
 export default router;

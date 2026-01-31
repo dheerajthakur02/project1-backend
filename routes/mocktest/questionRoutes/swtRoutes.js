@@ -5,6 +5,7 @@ import {
   getSWTById,
   updateSWT,
   deleteSWT,
+  getUnusedQuestionsForAllTypes,
 } from "../../../controllers/mocktest/questionTests/swtController.js";
 
 const router = express.Router();
@@ -14,5 +15,6 @@ router.get("/", getAllSWT);
 router.get("/:id", getSWTById);
 router.put("/:id", updateSWT);
 router.delete("/:id", deleteSWT);
+router.get("/get/unused", getUnusedQuestionsForAllTypes)
 
 export default router;
