@@ -5,6 +5,7 @@ import {
   getWFDById,
   updateWFD,
   deleteWFD,
+  submitWFD
 } from "../../../controllers/mocktest/questionTests/wfdController.js";
 
 const router = express.Router();
@@ -14,5 +15,6 @@ router.get("/", getAllWFD);
 router.get("/:id", getWFDById);
 router.put("/:id", updateWFD);
 router.delete("/:id", deleteWFD);
+router.post("/submit", submitWFD);
 
 export default router;

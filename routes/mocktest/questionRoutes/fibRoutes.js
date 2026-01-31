@@ -5,11 +5,14 @@ import {
   getFIBRWById,
   updateFIBRW,
   deleteFIBRW,
+  submitFIBRW
 } from "../../../controllers/mocktest/questionTests/fibController.js";
+import { authorize } from "../../../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 router.post("/", createFIBRW);
+router.post("/submit", authorize(), submitFIBRW);
 router.get("/", getAllFIBRW);
 router.get("/:id", getFIBRWById);
 router.put("/:id", updateFIBRW);

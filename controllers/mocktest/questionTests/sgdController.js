@@ -155,3 +155,68 @@ export const deleteSGD = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to delete SGD" });
   }
 };
+
+/* ===================== SUBMIT SGD ===================== */
+import { SpeakingResult } from "../../../models/mocktest/Speaking.js";
+
+export const submitSGD = async (req, res) => {
+  try {
+    const { testId, answers, userId } = req.body;
+    // answers: array of { questionId, audioUrl }
+
+    let totalFluency = 0;
+    let totalPronunciation = 0;
+    let totalContent = 0;
+    const count = answers?.length || 0;
+
+    const results = count > 0 ? answers.map(a => {
+        // Mock Scoring for SGD
+        const fluency = Math.floor(Math.random() * (5 - 3) + 3);
+        const pronunciation = Math.floor(Math.random() * (5 - 3) + 3);
+        const content = Math.floor(Math.random() * (5 - 2) + 2);
+
+        totalFluency += fluency;
+        totalPronunciation += pronunciation;
+        totalContent += content;
+
+        return {
+            questionId: a.questionId,
+            questionType: "SGD",
+            fluencyScore: fluency,
+            pronunciationScore: pronunciation,
+            contentScore: content,
+            score: parseFloat(((fluency + pronunciation + content) / 3).toFixed(1)),
+            userTranscript: "Audio response recorded",
+            audioUrl: a.audioUrl
+        };
+    }) : [];
+
+    const sectionScores = {
+        fluency: count > 0 ? parseFloat((totalFluency / count).toFixed(1)) : 0,
+        pronunciation: count > 0 ? parseFloat((totalPronunciation / count).toFixed(1)) : 0,
+        content: count > 0 ? parseFloat((totalContent / count).toFixed(1)) : 0
+    };
+
+    const overallScore = count > 0 ? parseFloat(((sectionScores.fluency + sectionScores.pronunciation + sectionScores.content) / 3).toFixed(1)) : 0;
+
+    const speakingResult = new SpeakingResult({
+        user: req.user?._id || userId,
+        testId: testId,
+        testModel: 'SGD',
+        overallScore,
+        sectionScores,
+        scores: results
+    });
+
+    await speakingResult.save();
+
+    res.json({
+        success: true,
+        data: speakingResult
+    });
+
+  } catch (error) {
+    console.error("Submit SGD Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

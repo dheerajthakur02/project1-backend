@@ -5,11 +5,14 @@ import {
   getROById,
   updateRO,
   deleteRO,
+  submitRO
 } from "../../../controllers/mocktest/questionTests/roController.js";
+import { authorize } from "../../../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 router.post("/", createRO);
+router.post("/submit", authorize(), submitRO);
 router.get("/", getAllRO);
 router.get("/:id", getROById);
 router.put("/:id", updateRO);

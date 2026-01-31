@@ -136,3 +136,88 @@ export const deleteFIBRW = async (req, res) => {
     res.status(500).json({ success: false, message: "Delete failed" });
   }
 };
+
+/* ===================== SUBMIT FIB RW ===================== */
+import { ReadingResult } from "../../../models/mocktest/Reading.js";
+
+export const submitFIBRW = async (req, res) => {
+  try {
+    const { testId, answers, userId } = req.body;
+    // answers: { questionIdx: { blankIndex: "value" } } or flat array? 
+    // Frontend sends: { [questionIdx]: { [blankIdx (1-based)]: "value" } }
+    // We need to map this back to question IDs.
+    
+    // 1. Fetch the Test Section
+    const fibSection = await FIBRW.findById(testId).populate("fibQuestions");
+    if (!fibSection) {
+        return res.status(404).json({ success: false, message: "Test section not found" });
+    }
+
+    const { fibQuestions } = fibSection;
+    let totalScore = 0;
+    let totalMaxScore = 0;
+    const results = [];
+
+    // 2. Iterate Questions
+    fibQuestions.forEach((question, qIdx) => {
+        const userQAnswers = answers[qIdx] || {};
+        let questionScore = 0;
+        let questionMax = 0;
+        const blankAnalysis = [];
+
+        question.blanks.forEach(blank => {
+            const blankId = blank.index; // 1-based index from schema
+            const correct = blank.correctAnswer;
+            const userVal = userQAnswers[blankId]; // strict match
+
+            questionMax++;
+            
+            const isCorrect = userVal === correct;
+            if (isCorrect) questionScore++;
+
+            blankAnalysis.push({
+                blankIndex: blankId,
+                correctAnswer: correct,
+                userAnswer: userVal || null,
+                isCorrect
+            });
+        });
+
+        totalScore += questionScore;
+        totalMaxScore += questionMax;
+
+        results.push({
+            questionId: question._id,
+            questionType: "FIBRW",
+            score: questionScore,
+            maxScore: questionMax,
+            answers: blankAnalysis
+        });
+    });
+
+    // 3. Save Result
+    const readingResult = new ReadingResult({
+        user: req.user?._id || userId,
+        testId: testId,
+        testModel: 'FIB', // or FIBRW
+        overallScore: totalScore,
+        totalMaxScore: totalMaxScore,
+        sectionScores: {
+            reading: totalScore,
+            writing: totalScore // RW contributes to both, simplifying here
+        },
+        scores: results
+    });
+
+    await readingResult.save();
+
+    res.json({
+        success: true,
+        data: readingResult
+    });
+
+  } catch (error) {
+    console.error("Submit FIB RW Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

@@ -133,3 +133,82 @@ export const deleteFIBD = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to delete FIBD" });
   }
 };
+
+/* ===================== SUBMIT FIBD ===================== */
+import { ReadingResult } from "../../../models/mocktest/Reading.js";
+
+export const submitFIBD = async (req, res) => {
+  try {
+    const { testId, answers, userId } = req.body;
+    // answers: { questionIdx: { blankIndex: "value" } }
+
+    const section = await FIBD.findById(testId).populate("ReadingFIBDragDrops");
+    if (!section) {
+        return res.status(404).json({ success: false, message: "Test section not found" });
+    }
+
+    const { ReadingFIBDragDrops: questions } = section;
+    let totalScore = 0;
+    let totalMaxScore = 0;
+    const results = [];
+
+    questions.forEach((question, qIdx) => {
+        const userQAnswers = answers[qIdx] || {};
+        let questionScore = 0;
+        let questionMax = 0;
+        const blankAnalysis = [];
+
+        question.correctAnswers.forEach(ans => {
+            const blankId = ans.index;
+            const correct = ans.correctAnswer;
+            const userVal = userQAnswers[blankId];
+
+            questionMax++;
+            const isCorrect = userVal === correct;
+            if (isCorrect) questionScore++;
+
+            blankAnalysis.push({
+                blankIndex: blankId,
+                correctAnswer: correct,
+                userAnswer: userVal || null,
+                isCorrect
+            });
+        });
+
+        totalScore += questionScore;
+        totalMaxScore += questionMax;
+
+        results.push({
+            questionId: question._id,
+            questionType: "FIBD",
+            score: questionScore,
+            maxScore: questionMax,
+            answers: blankAnalysis
+        });
+    });
+
+    const readingResult = new ReadingResult({
+        user: req.user?._id || userId,
+        testId: testId,
+        testModel: 'FIBD',
+        overallScore: totalScore,
+        totalMaxScore: totalMaxScore,
+        sectionScores: {
+            reading: totalScore,
+             writing: 0 
+        },
+        scores: results
+    });
+
+    await readingResult.save();
+
+    res.json({
+        success: true,
+        data: readingResult
+    });
+
+  } catch (error) {
+    console.error("Submit FIBD Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

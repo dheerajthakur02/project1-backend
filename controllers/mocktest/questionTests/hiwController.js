@@ -136,3 +136,86 @@ export const deleteHIW = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to delete HIW" });
   }
 };
+
+/* ===================== SUBMIT HIW ===================== */
+import { ListeningResult } from "../../../models/mocktest/Listening.js";
+
+export const submitHIW = async (req, res) => {
+  try {
+    const { testId, answers, userId } = req.body; 
+    // answers: { questionIdx: [index1, index2] } (indices of selected words)
+
+    const group = await HIW.findById(testId).populate("highlightIncorrectWordsQuestions");
+    if (!group) {
+        return res.status(404).json({ success: false, message: "Test section not found" });
+    }
+
+    const questions = group.highlightIncorrectWordsQuestions;
+    let totalScore = 0;
+    let totalMaxScore = 0;
+    const results = [];
+
+    questions.forEach((question, qIdx) => {
+        const userSelectedIndices = answers[qIdx] || [];
+        const correctIndices = question.mistakes.map(m => m.index);
+        
+        const correctSet = new Set(correctIndices);
+        const userSet = new Set(userSelectedIndices);
+
+        let correctCount = 0;
+        let incorrectCount = 0;
+
+        // Calculate hits and false alarms
+        userSelectedIndices.forEach(idx => {
+            if (correctSet.has(idx)) {
+                correctCount++;
+            } else {
+                incorrectCount++;
+            }
+        });
+
+        // Scoring: +1 per correct, -1 per incorrect, min 0
+        let questionScore = Math.max(0, correctCount - incorrectCount);
+        let questionMax = correctIndices.length;
+
+        totalScore += questionScore;
+        totalMaxScore += questionMax;
+
+        results.push({
+            questionId: question._id,
+            questionType: "HIW",
+            score: questionScore,
+            maxScore: questionMax,
+            userAnswer: userSelectedIndices,
+            answers: {
+                correctIndices: correctIndices,
+                correctCount,
+                incorrectCount
+            }
+        });
+    });
+
+    const listeningResult = new ListeningResult({
+        user: req.user?._id || userId,
+        testId: testId,
+        testModel: 'HIW',
+        overallScore: totalScore,
+        sectionScores: {
+            listening: totalScore,
+            reading: totalScore // HIW contributes to reading too
+        },
+        scores: results
+    });
+
+    await listeningResult.save();
+
+    res.json({
+        success: true,
+        data: listeningResult
+    });
+
+  } catch (error) {
+    console.error("Submit HIW Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
