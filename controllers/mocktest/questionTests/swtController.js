@@ -133,3 +133,38 @@ export const deleteSWT = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to delete SWT" });
   }
 };
+
+
+export const getUnusedQuestionsForAllTypes = async (req, res) => {
+  try {
+    // --- Summarize Written Text Questions ---
+    const allSummarizeTextQuestions = await SummarizeTextQuestion.find({});
+    const existingSWTSections = await SWT.find({});
+
+    const usedSummarizeTextQuestionIds = new Set();
+    existingSWTSections.forEach(section => {
+      section.SummarizeTextQuestions.forEach(id => usedSummarizeTextQuestionIds.add(id.toString()));
+    });
+
+    const unusedSummarizeTextQuestions = allSummarizeTextQuestions.filter(q =>
+      !usedSummarizeTextQuestionIds.has(q._id.toString())
+    );
+
+   
+
+
+    res.status(200).json({
+      success: true,
+      data: {
+        summarizeText: unusedSummarizeTextQuestions,
+      
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching unused questions for all types:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused questions for all types",
+    });
+  }
+};

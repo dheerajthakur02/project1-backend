@@ -3,7 +3,8 @@ import { createSGD,
      getAllSGD,
   getSGDById,
   updateSGD,
-  deleteSGD
+  deleteSGD,
+  getUnusedSummarizeGroupDiscussionQuestions
  } from "../../../controllers/mocktest/questionTests/sgdController.js";
 
 const router = express.Router();
@@ -37,5 +38,7 @@ router.put("/:id", updateSGD);
  * @desc    Delete SGD
  */
 router.delete("/:id", deleteSGD);
+
+router.get("/get/unused", getUnusedSummarizeGroupDiscussionQuestions)
 
 export default router;

@@ -6,6 +6,7 @@ import {
   getWEById,
   updateWE,
   deleteWE,
+  getUnusedWriteEssayQuestions,
 } from "../../../controllers/mocktest/questionTests/weController.js";
 
 const router = express.Router();
@@ -15,5 +16,6 @@ router.get("/", getAllWE);
 router.get("/:id", getWEById);
 router.put("/:id", updateWE);
 router.delete("/:id", deleteWE);
+router.get("/get/unused", getUnusedWriteEssayQuestions)
 
 export default router;

@@ -278,3 +278,40 @@ export const submitDI = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
+/* ===================== GET UNUSED DESCRIBE IMAGE QUESTIONS ===================== */
+export const getUnusedDescribeImageQuestions = async (req, res) => {
+  try {
+    // 1. Get all available ImageQuestion documents
+    const allImageQuestions = await ImageQuestion.find({});
+
+    // 2. Find all existing DI sections
+    const existingDISections = await DI.find({});
+
+    // 3. Create a Set of all ImageQuestion IDs currently used in any DI section
+    const usedImageQuestionIds = new Set();
+    existingDISections.forEach(section => {
+      section.describeImageQuestions.forEach(id => usedImageQuestionIds.add(id.toString()));
+    });
+
+    // 4. Filter 'allImageQuestions' to find those whose IDs are not in the 'usedImageQuestionIds' Set
+    const unusedDescribeImageQuestions = allImageQuestions.filter(q =>
+      !usedImageQuestionIds.has(q._id.toString())
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        describeImage: unusedDescribeImageQuestions, // Use 'describeImage' as the key for consistency with frontend
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching unused Describe Image questions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused Describe Image questions",
+    });
+  }
+};
+

@@ -5,6 +5,7 @@ import {
   getReTellById,
   updateReTell,
   deleteReTell,
+  getUnusedRetellLectureQuestions,
 } from "../../../controllers/mocktest/questionTests/retellController.js";
 
 const router = express.Router();
@@ -26,4 +27,5 @@ router.put("/:id", updateReTell);
 // Delete Re-tell Lecture
 router.delete("/:id", deleteReTell);
 
+router.get("/get/unused", getUnusedRetellLectureQuestions)
 export default router;

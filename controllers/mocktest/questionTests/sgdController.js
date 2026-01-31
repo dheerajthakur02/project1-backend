@@ -155,3 +155,32 @@ export const deleteSGD = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to delete SGD" });
   }
 };
+
+export const getUnusedSummarizeGroupDiscussionQuestions = async (req, res) => {
+  try {
+    const allSGDQuestions = await SummarizeGroupQuestion.find({});
+    const existingSGDSections = await SGD.find({});
+
+    const usedSGDQuestionIds = new Set();
+    existingSGDSections.forEach(section => {
+      section.summarizeGroupDiscussionQuestions.forEach(id => usedSGDQuestionIds.add(id.toString()));
+    });
+
+    const unusedSGDQuestions = allSGDQuestions.filter(q =>
+      !usedSGDQuestionIds.has(q._id.toString())
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        summarizeGroupDiscussion: unusedSGDQuestions, // Key for frontend
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching unused Summarize Group Discussion questions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused Summarize Group Discussion questions",
+    });
+  }
+};

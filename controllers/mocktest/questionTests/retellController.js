@@ -205,3 +205,34 @@ export const deleteReTell = async (req, res) => {
     });
   }
 };
+
+
+/* ===================== GET UNUSED RETELL LECTURE QUESTIONS ===================== */
+export const getUnusedRetellLectureQuestions = async (req, res) => {
+  try {
+    const allRetellLectureQuestions = await RetellLectureQuestion.find({});
+    const existingRetellSections = await RETELL.find({});
+
+    const usedRetellQuestionIds = new Set();
+    existingRetellSections.forEach(section => {
+      section.reTellQuestions.forEach(id => usedRetellQuestionIds.add(id.toString()));
+    });
+
+    const unusedRetellLectureQuestions = allRetellLectureQuestions.filter(q =>
+      !usedRetellQuestionIds.has(q._id.toString())
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        reTellLecture: unusedRetellLectureQuestions, // Key for frontend
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching unused Re-tell Lecture questions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused Re-tell Lecture questions",
+    });
+  }
+};
