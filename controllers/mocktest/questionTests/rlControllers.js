@@ -267,7 +267,7 @@ export const submitRL = async (req, res) => {
 
     // SAVE TO DB using SpeakingResult
     const speakingResult = new SpeakingResult({
-        user: req.user?._id || userId,
+        user: req.user?._id || req.user?.id || userId,
         // If Practice Mode, use the first questionID as testId ref, and 'readaloud' as model
         testId: isPractice ? (answers[0]?.questionId) : testId, 
         testModel: isPractice ? 'readaloud' : 'RL', 

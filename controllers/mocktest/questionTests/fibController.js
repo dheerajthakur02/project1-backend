@@ -196,7 +196,7 @@ export const submitFIBRW = async (req, res) => {
 
     // 3. Save Result
     const readingResult = new ReadingResult({
-        user: req.user?._id || userId,
+        user: req.user?._id || req.user?.id || userId,
         testId: testId,
         testModel: 'FIBRW', // Must match model name "FIBRW"
         overallScore: totalScore,

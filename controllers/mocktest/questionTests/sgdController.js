@@ -200,7 +200,7 @@ export const submitSGD = async (req, res) => {
     const overallScore = count > 0 ? parseFloat(((sectionScores.fluency + sectionScores.pronunciation + sectionScores.content) / 3).toFixed(1)) : 0;
 
     const speakingResult = new SpeakingResult({
-        user: req.user?._id || userId,
+        user: req.user?._id || req.user?.id || userId,
         testId: testId,
         testModel: 'SGD',
         overallScore,

@@ -10,6 +10,7 @@ import {
   submitWFD,
   getUnusedWFDQuestions
 } from "../../../controllers/mocktest/questionTests/wfdController.js";
+import { authorize } from "../../../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ router.get("/", getAllWFD);
 router.get("/:id", getWFDById);
 router.put("/:id", updateWFD);
 router.delete("/:id", deleteWFD);
-router.post("/submit", submitWFD);
+router.post("/submit", authorize(), submitWFD);
 router.get("/get/unused", getUnusedWFDQuestions);
 
 export default router;

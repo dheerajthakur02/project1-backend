@@ -196,7 +196,7 @@ export const submitHIW = async (req, res) => {
     });
 
     const listeningResult = new ListeningResult({
-        user: req.user?._id || userId,
+        user: req.user?._id || req.user?.id || userId,
         testId: testId,
         testModel: 'HIW',
         overallScore: totalScore,

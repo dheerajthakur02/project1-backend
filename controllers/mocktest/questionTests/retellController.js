@@ -254,7 +254,7 @@ export const submitReTell = async (req, res) => {
 
     // SAVE TO DB using SpeakingResult
     const speakingResult = new SpeakingResult({
-        user: req.user?._id || userId,
+        user: req.user?._id || req.user?.id || userId,
         testId: testId,
         testModel: 'ReTell', 
         overallScore,

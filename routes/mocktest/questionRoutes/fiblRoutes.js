@@ -8,6 +8,7 @@ import {
   submitFIBL,
   getUnusedFIBLQuestions
 } from "../../../controllers/mocktest/questionTests/fiblController.js";
+import { authorize } from "../../../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ router.get("/:id", getFIBLById);
 router.put("/:id", updateFIBL);
 router.delete("/:id", deleteFIBL);
 
-router.post("/submit", submitFIBL);
+router.post("/submit", authorize(), submitFIBL);
 router.get("/get/unused", getUnusedFIBLQuestions);
 
 export default router;

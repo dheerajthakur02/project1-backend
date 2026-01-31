@@ -196,7 +196,7 @@ export const submitRO = async (req, res) => {
     });
 
     const readingResult = new ReadingResult({
-        user: req.user?._id || userId,
+        user: req.user?._id || req.user?.id || userId,
         testId: testId,
         testModel: 'RO',
         overallScore: totalScore,

@@ -145,7 +145,7 @@ export const submitFIBL = async (req, res) => {
 
     // SAVE TO DB
     const listeningResult = new ListeningResult({
-        user: req.user?._id || req.body.userId, // handle if userId passed in body
+        user: req.user?._id || req.user?.id || req.body.userId, // handle if userId passed in body
         testId: testId,
         testModel: 'FIBL',
         overallScore: totalScore,

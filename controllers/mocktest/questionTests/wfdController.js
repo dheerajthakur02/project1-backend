@@ -106,7 +106,7 @@ export const submitWFD = async (req, res) => {
     
     // Create Result
     const result = new ListeningResult({
-        user: req.user?._id || userId,
+        user: req.user?._id || req.user?.id || userId,
         testId: testId,
         testModel: 'WFD',
         overallScore: totalScore,
