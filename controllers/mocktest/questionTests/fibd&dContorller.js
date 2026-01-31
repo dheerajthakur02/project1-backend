@@ -1,6 +1,7 @@
 import FIBD from "../../../models/mocktest/QuestionTests/FIBD&D.js";
 import mongoose from "mongoose";
 import { ReadingFIBDragDrop } from "../../../models/readingFIBDragDrop.model.js";
+import { ReadingResult } from "../../../models/mocktest/Reading.js"; // Fixed: Added Import
 
 /* ===================== CREATE ===================== */
 export const createFIBD = async (req, res) => {
@@ -135,15 +136,18 @@ export const deleteFIBD = async (req, res) => {
 };
 
 /* ===================== SUBMIT FIBD ===================== */
-import { ReadingResult } from "../../../models/mocktest/Reading.js";
+// ReadingResult is already imported at the top
 
 export const submitFIBD = async (req, res) => {
   try {
+    console.log("submitFIBD: payload", req.body); // DEBUG
+    console.log("submitFIBD: req.user", req.user); // DEBUG
     const { testId, answers, userId } = req.body;
     // answers: { questionIdx: { blankIndex: "value" } }
 
     const section = await FIBD.findById(testId).populate("ReadingFIBDragDrops");
     if (!section) {
+        console.error("submitFIBD: Section not found", testId); // DEBUG
         return res.status(404).json({ success: false, message: "Test section not found" });
     }
 
@@ -188,7 +192,7 @@ export const submitFIBD = async (req, res) => {
     });
 
     const readingResult = new ReadingResult({
-        user: req.user?._id || userId,
+        user: req.user?._id || req.user?.id || userId,
         testId: testId,
         testModel: 'FIBD',
         overallScore: totalScore,
@@ -200,7 +204,13 @@ export const submitFIBD = async (req, res) => {
         scores: results
     });
 
-    await readingResult.save();
+    try {
+        await readingResult.save();
+        console.log("submitFIBD: Result Saved!", readingResult._id); // DEBUG
+    } catch (saveError) {
+        console.error("submitFIBD: Save Failed", saveError); // DEBUG
+        throw saveError;
+    }
 
     res.json({
         success: true,

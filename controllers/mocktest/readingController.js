@@ -371,9 +371,9 @@ export const calculateReadingResult = async (req, res) => {
 
     const readingResult = new ReadingResult({
       user: userId,
-      readingId,
+      testId: readingId, // Fixed: Schema uses testId
       overallScore,
-      scores: detailedScores, // Schema expects 'scores' with specific fields, ensured above
+      scores: detailedScores, 
     });
 
     await readingResult.save();
@@ -397,9 +397,13 @@ export const calculateReadingResult = async (req, res) => {
 export const getUserReadingResults = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
+    console.log(`getUserReadingResults: Querying for userId: ${userId}`); // DEBUG
     const results = await ReadingResult.find({ user: userId })
-      .populate("readingId", "title name")
+      .populate("testId", "title name") // Fixed: Schema uses testId
       .sort({ createdAt: -1 });
+
+    console.log(`getUserReadingResults for ${userId}: Found ${results.length} results.`); // DEBUG
+    results.forEach(r => console.log(` - ID: ${r._id}, Model: ${r.testModel}, Score: ${r.overallScore}`)); // DEBUG
 
     res.status(200).json({
       success: true,

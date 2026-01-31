@@ -64,8 +64,8 @@ ReadingSchema.pre("save", function (next) {
 
 const ReadingResultSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  testId: { type: mongoose.Schema.Types.ObjectId }, // Generic ID for any reading test
-  testModel: { type: String, default: 'Reading' }, // e.g. 'FIB', 'Reading'
+  testId: { type: mongoose.Schema.Types.ObjectId, refPath: 'testModel' }, // Dynamic ref
+  testModel: { type: String, default: 'Reading' }, // e.g. 'Reading', 'ReadingFIBDropdown'
   overallScore: Number,
   totalMaxScore: { type: Number, default: 0 },
   sectionScores: {

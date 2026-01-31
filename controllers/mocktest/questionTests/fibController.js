@@ -137,19 +137,18 @@ export const deleteFIBRW = async (req, res) => {
   }
 };
 
-/* ===================== SUBMIT FIB RW ===================== */
+  /* ===================== SUBMIT FIB RW ===================== */
 import { ReadingResult } from "../../../models/mocktest/Reading.js";
 
 export const submitFIBRW = async (req, res) => {
   try {
+    console.log("submitFIBRW called with body:", req.body); // DEBUG
     const { testId, answers, userId } = req.body;
-    // answers: { questionIdx: { blankIndex: "value" } } or flat array? 
-    // Frontend sends: { [questionIdx]: { [blankIdx (1-based)]: "value" } }
-    // We need to map this back to question IDs.
     
     // 1. Fetch the Test Section
     const fibSection = await FIBRW.findById(testId).populate("fibQuestions");
     if (!fibSection) {
+        console.error("submitFIBRW: Test section not found for ID:", testId); // DEBUG
         return res.status(404).json({ success: false, message: "Test section not found" });
     }
 
@@ -199,7 +198,7 @@ export const submitFIBRW = async (req, res) => {
     const readingResult = new ReadingResult({
         user: req.user?._id || userId,
         testId: testId,
-        testModel: 'FIB', // or FIBRW
+        testModel: 'FIBRW', // Must match model name "FIBRW"
         overallScore: totalScore,
         totalMaxScore: totalMaxScore,
         sectionScores: {
@@ -209,7 +208,13 @@ export const submitFIBRW = async (req, res) => {
         scores: results
     });
 
-    await readingResult.save();
+    try {
+        await readingResult.save();
+        console.log("submitFIBRW: Successfully saved ReadingResult:", readingResult._id); // DEBUG
+    } catch (saveError) {
+        console.error("submitFIBRW: Failed to save ReadingResult:", saveError); // DEBUG
+        throw saveError; // Re-throw to catch block
+    }
 
     res.json({
         success: true,
