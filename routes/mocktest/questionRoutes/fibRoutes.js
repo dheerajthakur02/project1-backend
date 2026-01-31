@@ -5,7 +5,8 @@ import {
   getFIBRWById,
   updateFIBRW,
   deleteFIBRW,
-  submitFIBRW
+  submitFIBRW,
+  getUnusedFIBRWQuestions
 } from "../../../controllers/mocktest/questionTests/fibController.js";
 import { authorize } from "../../../middlewares/authMiddleware.js";
 
@@ -17,5 +18,6 @@ router.get("/", getAllFIBRW);
 router.get("/:id", getFIBRWById);
 router.put("/:id", updateFIBRW);
 router.delete("/:id", deleteFIBRW);
+router.get("/get/unused", getUnusedFIBRWQuestions);
 
 export default router;

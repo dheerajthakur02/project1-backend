@@ -221,3 +221,32 @@ export const submitFIBRW = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+/* ===================== GET UNUSED FIB RW QUESTIONS ===================== */
+export const getUnusedFIBRWQuestions = async (req, res) => {
+  try {
+    const allFIBQuestions = await ReadingFIBDropdown.find({});
+    const existingFIBRWSections = await FIBRW.find({});
+
+    const usedFIBQuestionIds = new Set();
+    existingFIBRWSections.forEach(section => {
+      section.fibQuestions.forEach(id => usedFIBQuestionIds.add(id.toString()));
+    });
+
+    const unusedFIBQuestions = allFIBQuestions.filter(q =>
+      !usedFIBQuestionIds.has(q._id.toString())
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        fibQuestions: unusedFIBQuestions, // Key for frontend
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching unused FIB RW questions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused FIB RW questions",
+    });
+  }
+};
