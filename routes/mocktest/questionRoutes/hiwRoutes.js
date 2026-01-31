@@ -7,7 +7,8 @@ import {
   getHIWById,
   updateHIW,
   deleteHIW,
-  submitHIW
+  submitHIW,
+  getUnusedHIWQuestions
 } from "../../../controllers/mocktest/questionTests/hiwController.js";
 import { authorize } from "../../../middlewares/authMiddleware.js";
 
@@ -20,6 +21,7 @@ const router = express.Router();
  */
 router.post("/", createHIW);
 router.post("/submit", authorize(), submitHIW);
+router.get("/get/unused", getUnusedHIWQuestions);
 
 /**
  * @route   GET /api/listening/hiw

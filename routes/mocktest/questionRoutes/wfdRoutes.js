@@ -1,11 +1,14 @@
 import express from "express";
+// ... imports
 import {
   createWFD,
   getAllWFD,
   getWFDById,
   updateWFD,
   deleteWFD,
-  submitWFD
+
+  submitWFD,
+  getUnusedWFDQuestions
 } from "../../../controllers/mocktest/questionTests/wfdController.js";
 
 const router = express.Router();
@@ -16,5 +19,6 @@ router.get("/:id", getWFDById);
 router.put("/:id", updateWFD);
 router.delete("/:id", deleteWFD);
 router.post("/submit", submitWFD);
+router.get("/get/unused", getUnusedWFDQuestions);
 
 export default router;

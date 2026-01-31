@@ -212,3 +212,32 @@ export const submitFIBD = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+/* ===================== GET UNUSED FIB DRAG DROP QUESTIONS ===================== */
+export const getUnusedFIBDragDropQuestions = async (req, res) => {
+  try {
+    const allFIBDQuestions = await ReadingFIBDragDrop.find({});
+    const existingFIBDSections = await FIBD.find({});
+
+    const usedFIBDQuestionIds = new Set();
+    existingFIBDSections.forEach(section => {
+      section.ReadingFIBDragDrops.forEach(id => usedFIBDQuestionIds.add(id.toString()));
+    });
+
+    const unusedFIBDQuestions = allFIBDQuestions.filter(q =>
+      !usedFIBDQuestionIds.has(q._id.toString())
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        fibdQuestions: unusedFIBDQuestions, // Key for frontend
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching unused FIB Drag Drop questions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused FIB Drag Drop questions",
+    });
+  }
+};

@@ -219,3 +219,32 @@ export const submitHIW = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+/* ===================== GET UNUSED HIW QUESTIONS ===================== */
+export const getUnusedHIWQuestions = async (req, res) => {
+  try {
+    const allHIWQuestions = await HIWQuestion.find({});
+    const existingHIWSections = await HIW.find({});
+
+    const usedHIWQuestionIds = new Set();
+    existingHIWSections.forEach(section => {
+      section.highlightIncorrectWordsQuestions.forEach(id => usedHIWQuestionIds.add(id.toString()));
+    });
+
+    const unusedHIWQuestions = allHIWQuestions.filter(q =>
+      !usedHIWQuestionIds.has(q._id.toString())
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        highlightIncorrectWordsQuestions: unusedHIWQuestions, // Key for frontend
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching unused HIW questions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused HIW questions",
+    });
+  }
+};

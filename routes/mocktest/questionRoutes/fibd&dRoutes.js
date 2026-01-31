@@ -5,7 +5,8 @@ import {
   getFIBDById,
   updateFIBD,
   deleteFIBD,
-  submitFIBD
+  submitFIBD,
+  getUnusedFIBDragDropQuestions
 } from "../../../controllers/mocktest/questionTests/fibd&dContorller.js";
 import { authorize } from "../../../middlewares/authMiddleware.js";
 
@@ -17,5 +18,6 @@ router.get("/", getAllFIBD);
 router.get("/:id", getFIBDById);
 router.put("/:id", updateFIBD);
 router.delete("/:id", deleteFIBD);
+router.get("/get/unused", getUnusedFIBDragDropQuestions);
 
 export default router;

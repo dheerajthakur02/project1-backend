@@ -125,3 +125,32 @@ export const submitWFD = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+/* ===================== GET UNUSED WFD QUESTIONS ===================== */
+export const getUnusedWFDQuestions = async (req, res) => {
+  try {
+    const allWFDQuestions = await WriteFromDictationQuestion.find({});
+    const existingWFDSections = await WFD.find({});
+
+    const usedWFDQuestionIds = new Set();
+    existingWFDSections.forEach(section => {
+      section.WriteFromDictationQuestions.forEach(id => usedWFDQuestionIds.add(id.toString()));
+    });
+
+    const unusedWFDQuestions = allWFDQuestions.filter(q =>
+      !usedWFDQuestionIds.has(q._id.toString())
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        WriteFromDictationQuestions: unusedWFDQuestions, // Key for frontend matching schema
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching unused WFD questions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused WFD questions",
+    });
+  }
+};

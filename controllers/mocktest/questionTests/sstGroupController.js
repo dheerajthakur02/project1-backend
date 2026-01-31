@@ -285,3 +285,33 @@ export const submitSSTGroup = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+/* ===================== GET UNUSED SST QUESTIONS ===================== */
+export const getUnusedSSTQuestions = async (req, res) => {
+  try {
+    const allSSTQuestions = await SSTQuestion.find({});
+    const existingSSTGroups = await SSTGroup.find({});
+
+    const usedSSTQuestionIds = new Set();
+    existingSSTGroups.forEach(group => {
+      group.summarizeSpokenTextQuestion.forEach(id => usedSSTQuestionIds.add(id.toString()));
+    });
+
+    const unusedSSTQuestions = allSSTQuestions.filter(q =>
+      !usedSSTQuestionIds.has(q._id.toString())
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        summarizeSpokenTextQuestion: unusedSSTQuestions, // Key for frontend matching schema
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching unused SST questions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused SST questions",
+    });
+  }
+};

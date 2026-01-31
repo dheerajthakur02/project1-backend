@@ -4,7 +4,8 @@ import { createSSTGroup,
   getSSTGroupById,
   updateSSTGroup,
   deleteSSTGroup,
-  submitSSTGroup
+  submitSSTGroup,
+  getUnusedSSTQuestions
 } from "../../../controllers/mocktest/questionTests/sstGroupController.js";
 import { authorize } from "../../../middlewares/authMiddleware.js";
 
@@ -17,5 +18,6 @@ router.get("/", getAllSSTGroups);
 router.get("/:id", getSSTGroupById);
 router.put("/:id", updateSSTGroup);
 router.delete("/:id", deleteSSTGroup);
+router.get("/get/unused", getUnusedSSTQuestions);
 
 export default router;

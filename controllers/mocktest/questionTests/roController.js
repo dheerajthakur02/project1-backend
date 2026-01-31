@@ -220,3 +220,32 @@ export const submitRO = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+/* ===================== GET UNUSED RO QUESTIONS ===================== */
+export const getUnusedROQuestions = async (req, res) => {
+  try {
+    const allROQuestions = await ReadingReorder.find({});
+    const existingROSections = await RO.find({});
+
+    const usedROQuestionIds = new Set();
+    existingROSections.forEach(section => {
+      section.reorderQuestions.forEach(id => usedROQuestionIds.add(id.toString()));
+    });
+
+    const unusedROQuestions = allROQuestions.filter(q =>
+      !usedROQuestionIds.has(q._id.toString())
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        reorderQuestions: unusedROQuestions, // Key for frontend
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching unused RO questions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused RO questions",
+    });
+  }
+};
