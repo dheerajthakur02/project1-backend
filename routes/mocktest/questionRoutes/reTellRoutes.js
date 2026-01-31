@@ -6,6 +6,7 @@ import {
   updateReTell,
   deleteReTell,
   getUnusedRetellLectureQuestions,
+  submitReTell
 } from "../../../controllers/mocktest/questionTests/retellController.js";
 import { authorize } from "../../../middlewares/authMiddleware.js";
 

@@ -4,7 +4,8 @@ import { createSGD,
   getSGDById,
   updateSGD,
   deleteSGD,
-  getUnusedSummarizeGroupDiscussionQuestions
+  getUnusedSummarizeGroupDiscussionQuestions,
+  submitSGD
  } from "../../../controllers/mocktest/questionTests/sgdController.js";
 import { authorize } from "../../../middlewares/authMiddleware.js";
 
