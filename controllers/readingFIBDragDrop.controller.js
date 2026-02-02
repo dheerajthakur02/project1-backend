@@ -1,3 +1,4 @@
+import { ReadingResult } from "../models/mocktest/Reading.js";
 import { ReadingFIBDragDrop } from "../models/readingFIBDragDrop.model.js";
 import { AttemptReadingFIBDragDrop } from "../models/attemptReadingFIBDragDrop.model.js";
 
@@ -73,7 +74,8 @@ export const getQuestionById = async (req, res) => {
 // Submit an attempt
 export const submitAttempt = async (req, res) => {
   try {
-    const { userId, questionId, userAnswers } = req.body;
+    const { questionId, userAnswers } = req.body;
+    const userId = req.user?._id || req.user?.id || req.body.userId;
 
     const question = await ReadingFIBDragDrop.findById(questionId);
     if (!question) {
@@ -111,6 +113,31 @@ export const submitAttempt = async (req, res) => {
     });
 
     await newAttempt.save();
+
+    // ALSO SAVE TO READING RESULT (Unified Result)
+    try {
+      const readingResult = new ReadingResult({
+        user: userId,
+        testId: questionId,
+        testModel: 'ReadingFIBDragDrop',
+        overallScore: score,
+        totalMaxScore: maxScore,
+        sectionScores: {
+          reading: score,
+          writing: 0
+        },
+        scores: [{
+          questionId: questionId,
+          questionType: 'FIB',
+          userAnswer: evaluatedAnswers,
+          score: score,
+          maxScore: maxScore
+        }]
+      });
+      await readingResult.save();
+    } catch (saveError) {
+      console.error("Failed to save unified ReadingResult:", saveError);
+    }
 
     res.status(201).json({
       success: true,

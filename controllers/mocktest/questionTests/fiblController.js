@@ -145,7 +145,7 @@ export const submitFIBL = async (req, res) => {
 
     // SAVE TO DB
     const listeningResult = new ListeningResult({
-        user: req.user?._id || req.body.userId, // handle if userId passed in body
+        user: req.user?._id || req.user?.id || req.body.userId, // handle if userId passed in body
         testId: testId,
         testModel: 'FIBL',
         overallScore: totalScore,
@@ -169,5 +169,34 @@ export const submitFIBL = async (req, res) => {
   } catch (error) {
     console.error("FIBL Submit Error:", error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+/* ===================== GET UNUSED FIBL QUESTIONS ===================== */
+export const getUnusedFIBLQuestions = async (req, res) => {
+  try {
+    const allFIBLQuestions = await ListeningFIBQuestion.find({});
+    const existingFIBLSections = await FIBL.find({});
+
+    const usedFIBLQuestionIds = new Set();
+    existingFIBLSections.forEach(section => {
+      section.fiblQuestions.forEach(id => usedFIBLQuestionIds.add(id.toString()));
+    });
+
+    const unusedFIBLQuestions = allFIBLQuestions.filter(q =>
+      !usedFIBLQuestionIds.has(q._id.toString())
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        fiblQuestions: unusedFIBLQuestions, // Key for frontend
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching unused FIBL questions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused FIBL questions",
+    });
   }
 };

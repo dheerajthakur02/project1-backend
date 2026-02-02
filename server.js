@@ -3,7 +3,7 @@ dns.setServers(['8.8.8.8']);
 
 
 
-import express, { json } from "express"; // Restart Trigger v2
+import express, { json } from "express"; // Restart Trigger v3
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";

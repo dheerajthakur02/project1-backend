@@ -257,7 +257,7 @@ export const submitRS = async (req, res) => {
     // Assuming we use SpeakingResult for all speaking sub-tests
     // SAVE TO DB
     const speakingResult = new SpeakingResult({
-        user: req.user?._id || userId,
+        user: req.user?._id || req.user?.id || userId,
         testId: testId,
         testModel: 'RS', // Using 'RS' model
         overallScore,

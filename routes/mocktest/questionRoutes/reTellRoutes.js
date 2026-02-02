@@ -6,7 +6,9 @@ import {
   updateReTell,
   deleteReTell,
   getUnusedRetellLectureQuestions,
+  submitReTell
 } from "../../../controllers/mocktest/questionTests/retellController.js";
+import { authorize } from "../../../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
@@ -14,6 +16,9 @@ const router = express.Router();
 
 // Create Re-tell Lecture section
 router.post("/", createReTell);
+
+// Submit (New) - Protected
+router.post("/submit", authorize(), submitReTell);
 
 // Get all Re-tell Lecture sections
 router.get("/", getAllReTell);

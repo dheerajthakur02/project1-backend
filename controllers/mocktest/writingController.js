@@ -402,7 +402,7 @@ export const getUserWritingResults = async (req, res) => {
 
 export const getWritingResultById = async (req, res) => {
   try {
-    const result = await WritingResult.findById(req.params.resultId);
+    const result = await WritingResult.findById(req.params.resultId).populate("writingId");
     if (!result) return res.status(404).json({ success: false, message: "Not found" });
 
     res.json({ success: true, data: result });

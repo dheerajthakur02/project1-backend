@@ -64,16 +64,23 @@ ReadingSchema.pre("save", function (next) {
 
 const ReadingResultSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  readingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Reading' },
+  testId: { type: mongoose.Schema.Types.ObjectId, refPath: 'testModel' }, // Dynamic ref
+  testModel: { type: String, default: 'Reading' }, // e.g. 'Reading', 'ReadingFIBDropdown'
   overallScore: Number,
+  totalMaxScore: { type: Number, default: 0 },
+  sectionScores: {
+    reading: Number,
+    writing: Number
+  },
   scores: [
     {
-      questionId: { type: mongoose.Schema.Types.ObjectId }, // Added
+      questionId: { type: mongoose.Schema.Types.ObjectId }, 
       questionType: String,
-      userAnswer: mongoose.Schema.Types.Mixed, // Added
-      score: Number, // General score
-      maxScore: Number, // Added
-      contentScore: Number, // Kept for backward compat if needed
+      userAnswer: mongoose.Schema.Types.Mixed,
+      answers: mongoose.Schema.Types.Mixed, // For detailed breakdown
+      score: Number, 
+      maxScore: Number, 
+      contentScore: Number, 
       fluencyScore: Number,
       pronunciationScore: Number,
       audioUrl: String

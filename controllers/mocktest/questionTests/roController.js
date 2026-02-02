@@ -134,3 +134,118 @@ export const deleteRO = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to delete RO section" });
   }
 };
+
+/* ===================== SUBMIT RO ===================== */
+import { ReadingResult } from "../../../models/mocktest/Reading.js";
+
+export const submitRO = async (req, res) => {
+  try {
+    const { testId, answers, userId } = req.body;
+    // answers: { questionIdx: [id1, id2, id3] } representing user target order
+
+    const section = await RO.findById(testId).populate("reorderQuestions");
+    if (!section) {
+        return res.status(404).json({ success: false, message: "Test section not found" });
+    }
+
+    const { reorderQuestions: questions } = section;
+    let totalScore = 0;
+    let totalMaxScore = 0;
+    const results = [];
+
+    questions.forEach((question, qIdx) => {
+        const userOrder = answers[qIdx] || [];
+        const correctOrder = question.correctOrder; // e.g. ['C', 'A', 'D', 'B']
+        
+        // Scoring: +1 for each correct adjacent pair
+        // Max pairs = length - 1
+        
+        let questionScore = 0;
+        let questionMax = Math.max(0, correctOrder.length - 1);
+        
+        // Identify correct pairs in correctOrder
+        const correctPairs = new Set();
+        for (let i = 0; i < correctOrder.length - 1; i++) {
+            correctPairs.add(`${correctOrder[i]}-${correctOrder[i+1]}`);
+        }
+
+        // Check user pairs
+        const userPairsFound = [];
+        for (let i = 0; i < userOrder.length - 1; i++) {
+             const pair = `${userOrder[i]}-${userOrder[i+1]}`;
+             if (correctPairs.has(pair)) {
+                 questionScore++;
+                 userPairsFound.push(pair);
+             }
+        }
+
+        totalScore += questionScore;
+        totalMaxScore += questionMax;
+
+        results.push({
+            questionId: question._id,
+            questionType: "RO",
+            score: questionScore,
+            maxScore: questionMax,
+            userAnswer: userOrder,
+            answers: {
+                correctOrder,
+                userPairsFound
+            }
+        });
+    });
+
+    const readingResult = new ReadingResult({
+        user: req.user?._id || req.user?.id || userId,
+        testId: testId,
+        testModel: 'RO',
+        overallScore: totalScore,
+        totalMaxScore: totalMaxScore,
+        sectionScores: {
+            reading: totalScore,
+            writing: 0 
+        },
+        scores: results
+    });
+
+    await readingResult.save();
+
+    res.json({
+        success: true,
+        data: readingResult
+    });
+
+  } catch (error) {
+    console.error("Submit RO Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+/* ===================== GET UNUSED RO QUESTIONS ===================== */
+export const getUnusedROQuestions = async (req, res) => {
+  try {
+    const allROQuestions = await ReadingReorder.find({});
+    const existingROSections = await RO.find({});
+
+    const usedROQuestionIds = new Set();
+    existingROSections.forEach(section => {
+      section.reorderQuestions.forEach(id => usedROQuestionIds.add(id.toString()));
+    });
+
+    const unusedROQuestions = allROQuestions.filter(q =>
+      !usedROQuestionIds.has(q._id.toString())
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        reorderQuestions: unusedROQuestions, // Key for frontend
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching unused RO questions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch unused RO questions",
+    });
+  }
+};

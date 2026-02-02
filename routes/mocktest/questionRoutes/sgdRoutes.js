@@ -4,8 +4,10 @@ import { createSGD,
   getSGDById,
   updateSGD,
   deleteSGD,
-  getUnusedSummarizeGroupDiscussionQuestions
+  getUnusedSummarizeGroupDiscussionQuestions,
+  submitSGD
  } from "../../../controllers/mocktest/questionTests/sgdController.js";
+import { authorize } from "../../../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
@@ -14,6 +16,12 @@ const router = express.Router();
  * @desc    Create SGD section
  */
 router.post("/", createSGD);
+
+/**
+ * @route   POST /api/speaking/sgd/submit
+ * @desc    Submit SGD attempt
+ */
+router.post("/submit", authorize(), submitSGD);
 
 /**
  * @route   GET /api/speaking/sgd

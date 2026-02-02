@@ -258,7 +258,7 @@ export const submitDI = async (req, res) => {
     // SAVE TO DB
     // SAVE TO DB
     const speakingResult = new SpeakingResult({
-        user: req.user?._id || userId,
+        user: req.user?._id || req.user?.id || userId,
         testId: testId,
         testModel: 'DI', // Using 'DI' model
         overallScore,

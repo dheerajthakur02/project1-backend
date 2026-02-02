@@ -1,5 +1,6 @@
 import { AttemptReadingFIBDropdown } from "../models/attemptReadingFIBDropdown.model.js";
 import { ReadingFIBDropdown } from "../models/readingFIBDropdown.model.js";
+import { ReadingResult } from "../models/mocktest/Reading.js"; // Import ReadingResult
 
 // Add a new question
 export const addQuestion = async (req, res) => {
@@ -170,6 +171,31 @@ export const submitAttempt = async (req, res) => {
     });
 
     await newAttempt.save();
+
+    // ALSO SAVE TO READING RESULT (Unified Result)
+    try {
+      const readingResult = new ReadingResult({
+        user: userId,
+        testId: questionId,
+        testModel: 'ReadingFIBDropdown',
+        overallScore: score,
+        totalMaxScore: maxScore,
+        sectionScores: {
+          reading: score,
+          writing: 0
+        },
+        scores: [{
+          questionId: questionId,
+          questionType: 'FIBD',
+          userAnswer: evaluatedAnswers,
+          score: score,
+          maxScore: maxScore
+        }]
+      });
+      await readingResult.save();
+    } catch (saveError) {
+      console.error("Failed to save unified ReadingResult:", saveError);
+    }
 
     res.status(201).json({
       success: true,

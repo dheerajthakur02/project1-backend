@@ -3,6 +3,32 @@ import { SpeakingResult } from "../../../models/mocktest/Speaking.js";
 import mongoose from "mongoose";
 import stringSimilarity from "string-similarity";
 import ReadAloudModel from "../../../models/readAloud.model.js";
+
+/* ===================== GET HISTORY ===================== */
+export const getReadAloudHistory = async (req, res) => {
+  try {
+    const { questionId } = req.params;
+    const userId = req.user?._id || req.user?.id;
+
+    if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
+
+    // Find results where ANY score item matches the questionId
+    const results = await SpeakingResult.find({
+        user: userId,
+        "scores.questionId": questionId
+    }).sort({ createdAt: -1 });
+
+    // Transform to match key frontend expectations if needed, 
+    // or we will just update frontend to read this structure.
+    // For now, returning the raw SpeakingResult list.
+    res.status(200).json({ success: true, data: results });
+
+  } catch (error) {
+    console.error("Get RA History Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 /* ===================== CREATE RL ===================== */
 export const createRL = async (req, res) => {
   try {
@@ -267,7 +293,7 @@ export const submitRL = async (req, res) => {
 
     // SAVE TO DB using SpeakingResult
     const speakingResult = new SpeakingResult({
-        user: req.user?._id || userId,
+        user: req.user?._id || req.user?.id || userId,
         // If Practice Mode, use the first questionID as testId ref, and 'readaloud' as model
         testId: isPractice ? (answers[0]?.questionId) : testId, 
         testModel: isPractice ? 'readaloud' : 'RL', 

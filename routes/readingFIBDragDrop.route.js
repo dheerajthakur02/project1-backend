@@ -17,7 +17,7 @@ router.post("/add", addQuestion);
 router.get("/", getQuestions);
 router.get("/get/:userId", getQuestions);
 router.get("/:id", getQuestionById);
-router.post("/submit", checkPracticeLimit, submitAttempt);
+router.post("/submit", authorize(), checkPracticeLimit, submitAttempt);
 router.get("/attempts/all", getAll);
 router.get("/attempts/:questionId", authorize(), getAttempts);
 
