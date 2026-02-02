@@ -1,6 +1,13 @@
 import {cloudinary} from "../config/cloudinary.js";
 import Question from "../models/repeat.model.js";
 import mongoose from "mongoose";
+import fs from "fs";
+import { createClient } from "@deepgram/sdk";
+
+import dotenv from "dotenv";
+dotenv.config();
+const deepgram = createClient(process.env.API_KEY);
+
 
 
 // Upload Question
@@ -11,10 +18,27 @@ export const addQuestion = async (req, res) => {
     resource_type: "video"
   });
 
+    // 2. Convert Audio to Transcript using OpenAI Whisper
+          const audioBuffer = fs.readFileSync(req.file.path);
+          const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
+              audioBuffer,
+              {
+                  smart_format: true,
+                  model: "nova-2", // Their fastest and most accurate model
+                  language: "en-US",
+              }
+          );
+  
+          if (error) throw error;
+  
+          // Extract transcript text
+          const transcript = result.results.channels[0].alternatives[0].transcript;
+
   const question = await Question.create({
     title,
     prepareTime,
     answerTime,
+    transcript: transcript,
     audioUrl: audio?.secure_url,
     cloudinaryId: audio?.public_id,
     difficulty: req.body.difficulty || "Medium",

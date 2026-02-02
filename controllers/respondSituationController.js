@@ -199,6 +199,102 @@ export const getRespondSituationQuestionsWithAttempts = async (req, res) => {
   }
 };
 
+export const getCommunityRespondSituationAttemptsByQuestion = async (req, res) => {
+  try {
+    const { questionId } = req.params;
+
+    /* ---------------- VALIDATE questionId ---------------- */
+    if (!questionId || !mongoose.Types.ObjectId.isValid(questionId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid questionId is required"
+      });
+    }
+
+    const qId = new mongoose.Types.ObjectId(questionId);
+
+    const attempts = await RespondSituationAttempt.aggregate([
+      /* ---------------- MATCH QUESTION ---------------- */
+      {
+        $match: {
+          questionId: qId
+        }
+      },
+
+      /* ---------------- SORT LATEST FIRST ---------------- */
+      {
+        $sort: { createdAt: -1 }
+      },
+
+      /* ---------------- LATEST ATTEMPT PER USER ---------------- */
+      {
+        $group: {
+          _id: "$userId",
+          latestAttempt: { $first: "$$ROOT" }
+        }
+      },
+
+      /* ---------------- FLATTEN ---------------- */
+      {
+        $replaceRoot: {
+          newRoot: "$latestAttempt"
+        }
+      },
+
+      /* ---------------- POPULATE USER ---------------- */
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      {
+        $unwind: {
+          path: "$user",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+
+      /* ---------------- FINAL RESPONSE ---------------- */
+      {
+        $project: {
+          userId: 1,
+          "user.name": 1,
+          score: 1,
+          content: 1,
+          transcript: 1,
+          fluency: 1,
+          pronunciation: 1,
+          wordAnalysis: 1,
+          studentAudio: 1,
+          createdAt: 1
+        }
+      },
+
+      /* ---------------- LIMIT FOR UI ---------------- */
+      {
+        $limit: 20
+      }
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      count: attempts.length,
+      data: attempts
+    });
+
+  } catch (error) {
+    console.error("COMMUNITY RESPOND SITUATION ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+
 export const deleteRespondSituationQuestion = async (req, res) => {
   try {
     const { id } = req.params;

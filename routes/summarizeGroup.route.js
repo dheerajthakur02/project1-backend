@@ -6,6 +6,7 @@ import {
   deleteQuestion,
   getQuestionsWithAttempts,
   createSummarizeGroupAttempt,
+  getCommunitySummarizeGroupAttemptsByQuestion,
 
 } from "../controllers/summarizeGroupController.js";
 import { authorize } from "../middlewares/authMiddleware.js";
@@ -28,6 +29,8 @@ router.put("/:id", upload.single("audio"), updateQuestion);
 
 // Delete question
 router.delete("/:id", deleteQuestion);
+
+router.get("/community/:questionId", getCommunitySummarizeGroupAttemptsByQuestion)
 
 /* ================= ATTEMPT ROUTES ================= */
 

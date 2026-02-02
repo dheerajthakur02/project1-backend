@@ -7,6 +7,7 @@ import {
   getQuestionsWithAttempts,
   createShortAnswerAttempt,
   getAllQuestions,
+  getCommunityShortAnswerAttemptsByQuestion,
 } from "../controllers/shortAnswerController.js";
 import { authorize } from "../middlewares/authMiddleware.js";
 // import { createShortAnswerAttempt } from "../controllers/shortAnswerAttempt.controller.js";
@@ -29,6 +30,7 @@ router.put("/:id", upload.single("audio"), updateQuestion);
 
 // Delete question
 router.delete("/:id", deleteQuestion);
+router.get("/community/:questionId", getCommunityShortAnswerAttemptsByQuestion);
 
 /* ================= ATTEMPT ROUTES ================= */
 

@@ -278,6 +278,114 @@ export const getRetellQuestionsWithAttempts = async (req, res) => {
   }
 };
 
+
+export const getCommunityAttemptsByQuestion = async (req, res) => {
+  try {
+    const { questionId } = req.params;
+
+    if (!questionId || !mongoose.Types.ObjectId.isValid(questionId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid questionId is required"
+      });
+    }
+
+    const qId = new mongoose.Types.ObjectId(questionId);
+
+    const attempts = await RetellLectureAttempt.aggregate([
+      /**
+       * 1️⃣ Match only this question
+       */
+      {
+        $match: {
+          questionId: qId
+        }
+      },
+
+      /**
+       * 2️⃣ Sort latest attempts first
+       */
+      {
+        $sort: { createdAt: -1 }
+      },
+
+      /**
+       * 3️⃣ Group by user → keep latest attempt only
+       */
+      {
+        $group: {
+          _id: "$userId",
+          latestAttempt: { $first: "$$ROOT" }
+        }
+      },
+
+      /**
+       * 4️⃣ Flatten structure
+       */
+      {
+        $replaceRoot: {
+          newRoot: "$latestAttempt"
+        }
+      },
+
+      /**
+       * 5️⃣ Optional: populate user info
+       */
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      {
+        $unwind: {
+          path: "$user",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+
+      /**
+       * 6️⃣ Project only required fields
+       */
+      {
+        $project: {
+          userId: 1,
+          "user.name": 1,
+          score: 1,
+          content: 1,
+          fluency: 1,
+          pronunciation: 1,
+          createdAt: 1,
+          studentAudio: 1
+        }
+      },
+
+      /**
+       * 7️⃣ Optional limit for UI
+       */
+      {
+        $limit: 20
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      count: attempts.length,
+      data: attempts
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+
+
 export const createRetellAttempt = async (req, res) => {
   try {
     let { questionId, userId, transcript } = req.body;

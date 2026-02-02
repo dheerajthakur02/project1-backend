@@ -5,6 +5,7 @@ const questionSchema = new mongoose.Schema({
   audioUrl: String,
   cloudinaryId: String,
   difficulty: String,
+  transcript: String,
   prepareTime: Number,   // seconds
   answerTime: Number,    // seconds
 }, { timestamps: true });
