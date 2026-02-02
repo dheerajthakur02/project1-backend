@@ -205,6 +205,7 @@ export const getAttempts = async (req, res) => {
   }
 };
 
+import User from "../models/user.model.js";
 
 export const getAttemptsforCommunity = async (req, res) => {
   try {
@@ -217,36 +218,89 @@ export const getAttemptsforCommunity = async (req, res) => {
       });
     }
 
-    let pId = paragraphId;
+    let pId;
 
-    // If paragraphId is not ObjectId, find by custom id
-    if (!mongoose.Types.ObjectId.isValid(paragraphId)) {
+    // If paragraphId is a valid ObjectId, use it directly
+    if (mongoose.Types.ObjectId.isValid(paragraphId)) {
+      pId = new mongoose.Types.ObjectId(paragraphId);
+    } else {
+      // Otherwise, find paragraph by custom id
       const paragraph = await ReadAloud.findOne({ id: paragraphId });
-
       if (!paragraph) {
         return res.status(404).json({
           success: false,
           message: "Paragraph not found",
         });
       }
-
-      pId = paragraph._id;
+      pId = paragraph._id; // already an ObjectId, no need to wrap again
     }
 
-    const attempts = await Attempt.find({ paragraphId: pId })
-      .sort({ date: -1 })
-      .populate("userId", "name email");
+    const attempts = await Attempt.aggregate([
+      /* ---------------- MATCH PARAGRAPH ---------------- */
+      { $match: { paragraphId: pId } },
+
+      /* ---------------- SORT LATEST FIRST ---------------- */
+      { $sort: { date: -1 } },
+
+      /* ---------------- GROUP BY USER → COLLECT ALL ATTEMPTS ---------------- */
+      {
+        $group: {
+          _id: "$userId",
+          attempts: { $push: "$$ROOT" },
+        },
+      },
+
+      /* ---------------- KEEP UP TO 15 ATTEMPTS PER USER ---------------- */
+      {
+        $project: {
+          userId: "$_id",
+          attempts: { $slice: ["$attempts", 15] },
+        },
+      },
+
+      /* ---------------- POPULATE USER ---------------- */
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $unwind: { path: "$user", preserveNullAndEmptyArrays: true },
+      },
+
+      /* ---------------- FINAL RESPONSE ---------------- */
+      {
+        $project: {
+          userId: 1,
+          "user.name": 1,
+          "user.email": 1,
+          attempts: {
+            score: 1,
+            content: 1,
+            transcript: 1,
+            date: 1,
+            studentAudio: 1,
+          },
+        },
+      },
+    ]);
 
     res.status(200).json({
       success: true,
+      count: attempts.length,
       data: attempts,
     });
   } catch (error) {
+    console.error("Community Attempts Error:", error);
     res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
+
 
 

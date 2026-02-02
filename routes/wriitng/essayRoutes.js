@@ -1,6 +1,6 @@
 import express from "express";
 
-import { createEssayQuestion, deleteEssayQuestion, getWriteEssayQuestionsWithAttempts, submitEssayAttempt, updateEssayQuestion, getAllQuestions } from "../../controllers/writing/essayController.js";
+import { createEssayQuestion, deleteEssayQuestion, getWriteEssayQuestionsWithAttempts, submitEssayAttempt, updateEssayQuestion, getAllQuestions, getWriteEssayQuestionsWithCommunityAttempts } from "../../controllers/writing/essayController.js";
 
 const router = express.Router();
 
@@ -12,4 +12,5 @@ router.get("/all", getAllQuestions);
 router.get("/get/:userId",  getWriteEssayQuestionsWithAttempts);
 router.put("/:id",updateEssayQuestion)
 router.delete("/:id",deleteEssayQuestion)
+router.get("/community/:questionId", getWriteEssayQuestionsWithCommunityAttempts)
 export default router;

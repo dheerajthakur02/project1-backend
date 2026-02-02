@@ -278,7 +278,7 @@ export const getRetellQuestionsWithAttempts = async (req, res) => {
   }
 };
 
-
+import User from "../models/user.model.js";
 export const getCommunityAttemptsByQuestion = async (req, res) => {
   try {
     const { questionId } = req.params;
@@ -293,44 +293,34 @@ export const getCommunityAttemptsByQuestion = async (req, res) => {
     const qId = new mongoose.Types.ObjectId(questionId);
 
     const attempts = await RetellLectureAttempt.aggregate([
-      /**
-       * 1️⃣ Match only this question
-       */
-      {
-        $match: {
-          questionId: qId
-        }
-      },
+      // 1️⃣ Match only this question
+      { $match: { questionId: qId } },
 
-      /**
-       * 2️⃣ Sort latest attempts first
-       */
-      {
-        $sort: { createdAt: -1 }
-      },
+      // 2️⃣ Sort latest attempts first
+      { $sort: { createdAt: -1 } },
 
-      /**
-       * 3️⃣ Group by user → keep latest attempt only
-       */
+      // 3️⃣ Group by user → keep latest 15 attempts
       {
         $group: {
           _id: "$userId",
-          latestAttempt: { $first: "$$ROOT" }
+          latestAttempts: { $push: "$$ROOT" } // push all attempts into an array
         }
       },
 
-      /**
-       * 4️⃣ Flatten structure
-       */
+      // 4️⃣ Slice to max 15 attempts per user
       {
-        $replaceRoot: {
-          newRoot: "$latestAttempt"
+        $project: {
+          latestAttempts: { $slice: ["$latestAttempts", 15] }
         }
       },
 
-      /**
-       * 5️⃣ Optional: populate user info
-       */
+      // 5️⃣ Unwind to flatten the array back into documents
+      { $unwind: "$latestAttempts" },
+
+      // 6️⃣ Replace root to have normal document structure
+      { $replaceRoot: { newRoot: "$latestAttempts" } },
+
+      // 7️⃣ Optional: populate user info
       {
         $lookup: {
           from: "users",
@@ -339,16 +329,9 @@ export const getCommunityAttemptsByQuestion = async (req, res) => {
           as: "user"
         }
       },
-      {
-        $unwind: {
-          path: "$user",
-          preserveNullAndEmptyArrays: true
-        }
-      },
+      { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
 
-      /**
-       * 6️⃣ Project only required fields
-       */
+      // 8️⃣ Project only required fields
       {
         $project: {
           userId: 1,
@@ -362,12 +345,8 @@ export const getCommunityAttemptsByQuestion = async (req, res) => {
         }
       },
 
-      /**
-       * 7️⃣ Optional limit for UI
-       */
-      {
-        $limit: 20
-      }
+      // 9️⃣ Optional: limit total records for UI
+      { $limit: 300 } // 20 users × 15 attempts = 300 max
     ]);
 
     res.status(200).json({
@@ -383,6 +362,7 @@ export const getCommunityAttemptsByQuestion = async (req, res) => {
     });
   }
 };
+
 
 
 

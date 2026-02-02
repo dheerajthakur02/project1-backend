@@ -182,6 +182,7 @@ export const updateQuestion = async (req, res) => {
 
 
 
+import User from "../models/user.model.js";
 export const getCommunityShortAnswerAttemptsByQuestion = async (req, res) => {
   try {
     const { questionId } = req.params;
@@ -199,40 +200,40 @@ export const getCommunityShortAnswerAttemptsByQuestion = async (req, res) => {
       /**
        * 1️⃣ Match only this question
        */
-      {
-        $match: {
-          questionId: qId
-        }
-      },
+      { $match: { questionId: qId } },
 
       /**
        * 2️⃣ Sort latest attempts first
        */
-      {
-        $sort: { createdAt: -1 }
-      },
+      { $sort: { createdAt: -1 } },
 
       /**
-       * 3️⃣ Group by user → keep latest attempt only
+       * 3️⃣ Group by user → collect all attempts
        */
       {
         $group: {
           _id: "$userId",
-          latestAttempt: { $first: "$$ROOT" }
+          attempts: { $push: "$$ROOT" } // push all attempts into an array
         }
       },
 
       /**
-       * 4️⃣ Flatten structure
+       * 4️⃣ Keep only latest 15 attempts per user
        */
       {
-        $replaceRoot: {
-          newRoot: "$latestAttempt"
+        $project: {
+          attempts: { $slice: ["$attempts", 15] }
         }
       },
 
       /**
-       * 5️⃣ Populate user info
+       * 5️⃣ Flatten array back into documents
+       */
+      { $unwind: "$attempts" },
+      { $replaceRoot: { newRoot: "$attempts" } },
+
+      /**
+       * 6️⃣ Populate user info
        */
       {
         $lookup: {
@@ -250,7 +251,7 @@ export const getCommunityShortAnswerAttemptsByQuestion = async (req, res) => {
       },
 
       /**
-       * 6️⃣ Project only required fields
+       * 7️⃣ Project only required fields
        */
       {
         $project: {
@@ -265,11 +266,9 @@ export const getCommunityShortAnswerAttemptsByQuestion = async (req, res) => {
       },
 
       /**
-       * 7️⃣ Limit for UI
+       * 8️⃣ Optional: limit total records for UI
        */
-      {
-        $limit: 20
-      }
+      { $limit: 300 } // 20 users × 15 attempts = max 300
     ]);
 
     res.status(200).json({
@@ -286,6 +285,7 @@ export const getCommunityShortAnswerAttemptsByQuestion = async (req, res) => {
     });
   }
 };
+
 
 /* =====================================================
    DELETE QUESTION

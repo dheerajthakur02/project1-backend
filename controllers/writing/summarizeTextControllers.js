@@ -229,3 +229,113 @@ export const submitSummarizeWrittenAttempt = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
+
+export const getSummarizeTextQuestionsWithCommunityAttempts = async (req, res) => {
+  try {
+    const { questionId } = req.params;
+
+    const matchStage = questionId
+      ? { _id: new mongoose.Types.ObjectId(questionId) }
+      : {};
+
+    const questions = await SummarizeTextQuestion.aggregate([
+      { $match: matchStage },
+
+      /* ---------------- LOOKUP COMMUNITY ATTEMPTS ---------------- */
+      {
+        $lookup: {
+          from: "summarizewrittenattempts",
+          let: { qId: "$_id" },
+          pipeline: [
+            /* Match attempts for this question */
+            {
+              $match: {
+                $expr: { $eq: ["$questionId", "$$qId"] }
+              }
+            },
+
+            /* Latest first */
+            { $sort: { createdAt: -1 } },
+
+            /* Group by user */
+            {
+              $group: {
+                _id: "$userId",
+                attempts: { $push: "$$ROOT" }
+              }
+            },
+
+            /* Limit attempts per user */
+            {
+              $project: {
+                userId: "$_id",
+                attempts: { $slice: ["$attempts", 15] }
+              }
+            },
+
+            /* Populate user */
+            {
+              $lookup: {
+                from: "users",
+                localField: "userId",
+                foreignField: "_id",
+                as: "user"
+              }
+            },
+            {
+              $unwind: {
+                path: "$user",
+                preserveNullAndEmptyArrays: true
+              }
+            },
+
+            /* Final response shape */
+            {
+              $project: {
+                userId: 1,
+                user: { name: "$user.name" },
+                attempts: {
+                  summaryText: 1,
+                  wordCount: 1,
+                  score: 1,
+                  content: 1,
+                  grammar: 1,
+                  vocabulary: 1,
+                  form: 1,
+                  readingScore: 1,
+                  writingScore: 1,
+                  misSpelled: 1,
+                  structureErrors: 1,
+                  styleIssues: 1,
+                  timeTaken: 1,
+                  createdAt: 1
+                }
+              }
+            }
+          ],
+          as: "communityAttempts"
+        }
+      },
+
+      /* ---------------- TOTAL COMMUNITY USERS ---------------- */
+      {
+        $addFields: {
+          totalCommunityUsers: { $size: "$communityAttempts" }
+        }
+      }
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: questions
+    });
+  } catch (error) {
+    console.error("GET SUMMARIZE COMMUNITY ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

@@ -199,6 +199,9 @@ export const getRespondSituationQuestionsWithAttempts = async (req, res) => {
   }
 };
 
+
+import User from "../models/user.model.js";
+
 export const getCommunityRespondSituationAttemptsByQuestion = async (req, res) => {
   try {
     const { questionId } = req.params;
@@ -215,31 +218,29 @@ export const getCommunityRespondSituationAttemptsByQuestion = async (req, res) =
 
     const attempts = await RespondSituationAttempt.aggregate([
       /* ---------------- MATCH QUESTION ---------------- */
-      {
-        $match: {
-          questionId: qId
-        }
-      },
+      { $match: { questionId: qId } },
 
       /* ---------------- SORT LATEST FIRST ---------------- */
-      {
-        $sort: { createdAt: -1 }
-      },
+      { $sort: { createdAt: -1 } },
 
-      /* ---------------- LATEST ATTEMPT PER USER ---------------- */
+      /* ---------------- GROUP BY USER → COLLECT ALL ATTEMPTS ---------------- */
       {
         $group: {
           _id: "$userId",
-          latestAttempt: { $first: "$$ROOT" }
+          attempts: { $push: "$$ROOT" } // push all attempts into an array
         }
       },
 
-      /* ---------------- FLATTEN ---------------- */
+      /* ---------------- KEEP UP TO 15 ATTEMPTS PER USER ---------------- */
       {
-        $replaceRoot: {
-          newRoot: "$latestAttempt"
+        $project: {
+          attempts: { $slice: ["$attempts", 15] } // max 15 attempts per user
         }
       },
+
+      /* ---------------- FLATTEN ARRAY BACK TO DOCUMENTS ---------------- */
+      { $unwind: "$attempts" },
+      { $replaceRoot: { newRoot: "$attempts" } },
 
       /* ---------------- POPULATE USER ---------------- */
       {
@@ -273,10 +274,8 @@ export const getCommunityRespondSituationAttemptsByQuestion = async (req, res) =
         }
       },
 
-      /* ---------------- LIMIT FOR UI ---------------- */
-      {
-        $limit: 20
-      }
+      /* ---------------- LIMIT TOTAL FOR UI ---------------- */
+      { $limit: 300 } // e.g., 20 users × 15 attempts = max 300
     ]);
 
     return res.status(200).json({

@@ -131,11 +131,12 @@ export const getQuestionsWithAttempts = async (req, res) => {
   }
 };
 
-
+import User from "../models/user.model.js";
 export const getCommunitySummarizeGroupAttemptsByQuestion = async (req, res) => {
   try {
     const { questionId } = req.params;
 
+    /* ---------------- VALIDATE questionId ---------------- */
     if (!questionId || !mongoose.Types.ObjectId.isValid(questionId)) {
       return res.status(400).json({
         success: false,
@@ -146,34 +147,32 @@ export const getCommunitySummarizeGroupAttemptsByQuestion = async (req, res) => 
     const qId = new mongoose.Types.ObjectId(questionId);
 
     const attempts = await SummarizeGroupAttempt.aggregate([
-      /* ================= MATCH QUESTION ================= */
-      {
-        $match: {
-          questionId: qId,
-        },
-      },
+      /* ---------------- MATCH QUESTION ---------------- */
+      { $match: { questionId: qId } },
 
-      /* ================= SORT LATEST FIRST ================= */
-      {
-        $sort: { createdAt: -1 },
-      },
+      /* ---------------- SORT LATEST FIRST ---------------- */
+      { $sort: { createdAt: -1 } },
 
-      /* ================= LATEST ATTEMPT PER USER ================= */
+      /* ---------------- GROUP BY USER → COLLECT ALL ATTEMPTS ---------------- */
       {
         $group: {
           _id: "$userId",
-          latestAttempt: { $first: "$$ROOT" },
+          attempts: { $push: "$$ROOT" }, // push all attempts into an array
         },
       },
 
-      /* ================= FLATTEN ================= */
+      /* ---------------- KEEP UP TO 15 ATTEMPTS PER USER ---------------- */
       {
-        $replaceRoot: {
-          newRoot: "$latestAttempt",
+        $project: {
+          attempts: { $slice: ["$attempts", 15] }, // max 15 attempts per user
         },
       },
 
-      /* ================= POPULATE USER ================= */
+      /* ---------------- FLATTEN ARRAY BACK TO DOCUMENTS ---------------- */
+      { $unwind: "$attempts" },
+      { $replaceRoot: { newRoot: "$attempts" } },
+
+      /* ---------------- POPULATE USER ---------------- */
       {
         $lookup: {
           from: "users",
@@ -189,7 +188,7 @@ export const getCommunitySummarizeGroupAttemptsByQuestion = async (req, res) => 
         },
       },
 
-      /* ================= FINAL PROJECTION ================= */
+      /* ---------------- FINAL PROJECTION ---------------- */
       {
         $project: {
           userId: 1,
@@ -203,10 +202,8 @@ export const getCommunitySummarizeGroupAttemptsByQuestion = async (req, res) => 
         },
       },
 
-      /* ================= LIMIT FOR UI ================= */
-      {
-        $limit: 20,
-      },
+      /* ---------------- LIMIT TOTAL FOR UI ---------------- */
+      { $limit: 300 }, // e.g., 20 users × 15 attempts = 300 max
     ]);
 
     return res.status(200).json({
@@ -214,7 +211,6 @@ export const getCommunitySummarizeGroupAttemptsByQuestion = async (req, res) => 
       count: attempts.length,
       data: attempts,
     });
-
   } catch (error) {
     console.error("Community Summarize Group Error:", error);
     return res.status(500).json({
