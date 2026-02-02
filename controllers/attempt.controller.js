@@ -204,3 +204,49 @@ export const getAttempts = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
+export const getAttemptsforCommunity = async (req, res) => {
+  try {
+    const { paragraphId } = req.params;
+
+    if (!paragraphId) {
+      return res.status(400).json({
+        success: false,
+        message: "paragraphId is required",
+      });
+    }
+
+    let pId = paragraphId;
+
+    // If paragraphId is not ObjectId, find by custom id
+    if (!mongoose.Types.ObjectId.isValid(paragraphId)) {
+      const paragraph = await ReadAloud.findOne({ id: paragraphId });
+
+      if (!paragraph) {
+        return res.status(404).json({
+          success: false,
+          message: "Paragraph not found",
+        });
+      }
+
+      pId = paragraph._id;
+    }
+
+    const attempts = await Attempt.find({ paragraphId: pId })
+      .sort({ date: -1 })
+      .populate("userId", "name email");
+
+    res.status(200).json({
+      success: true,
+      data: attempts,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
