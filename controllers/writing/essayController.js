@@ -155,27 +155,25 @@ export const submitEssayAttempt = async (req, res) => {
     else if ((wordCount >= 120 && wordCount < 200) || (wordCount > 300 && wordCount <= 380)) form = 1;
     else form = 0;
 
-    // B. CONTENT (Max 3) - Based on keywords found in essay
+    // B. CONTENT (Max 2) - Updated to be based on Word Count as per user request
+    // Logic: 200-300 -> 2, 301-380 -> 1, 0-119 -> 0, >380 -> 0. (Assuming 120-199 -> 1)
     let content = 0;
-    if (keywords.length > 0) {
-      const foundKeywords = keywords.filter(kw => essayText.toLowerCase().includes(kw.toLowerCase()));
-      const coverage = foundKeywords.length / keywords.length;
-      if (coverage > 0.7) content = 3;
-      else if (coverage > 0.4) content = 2;
-      else if (coverage > 0.1) content = 1;
+    if (wordCount >= 200 && wordCount <= 300) {
+      content = 2;
+    } else if ((wordCount >= 120 && wordCount < 200) || (wordCount > 300 && wordCount <= 380)) {
+      content = 1;
     } else {
-        // Fallback if no keywords: based on word length
-        content = wordCount > 150 ? 2 : 1;
+      content = 0;
     }
 
-    // C. STRUCTURE & DISCOURSE (Max 2) - Check for transition words
+    // C. DEVELOPMENT (Max 2) - Formerly 'Structure'
+    // Updated to be same as CONTENT as per user requestame as CONTENT as per user request
     const transitionWords = ["furthermore", "moreover", "however", "consequently", "therefore", "in conclusion", "firstly", "secondly", "additionally", "nevertheless"];
     const foundTransitions = transitionWords.filter(word => essayText.toLowerCase().includes(word)).length;
     const paragraphs = essayText.split('\n').filter(p => p.trim().length > 0).length;
     
-    let structure = 0;
-    if (foundTransitions >= 4 && paragraphs >= 3) structure = 2;
-    else if (foundTransitions >= 2 || paragraphs >= 2) structure = 1;
+    // Original Logic preserved for "issues" tracking, but score is overridden
+    let structure = content; // User request: "marks of general and structure will be always same as the marks of content"
 
     // D. VOCABULARY (Max 2) - Lexical Range (Unique words ratio)
     const uniqueWords = new Set(words.map(w => w.toLowerCase())).size;
@@ -192,20 +190,29 @@ export const submitEssayAttempt = async (req, res) => {
     else if (correctSentences / sentences.length > 0.5) grammar = 1;
 
     // F. SPELLING (Max 2)
-    // For real spelling, you'd need a library like 'nspell'. 
-    // Here we simulate it based on a small chance or word complexity
-    let spelling = (wordCount > 100) ? 2 : 1; 
-    let misspelledCount = Math.floor(Math.random() * 3); // Simulated typos
-    if (misspelledCount > 2) spelling = 1;
-    if (misspelledCount > 5) spelling = 0;
+    // Logic: 0 errors -> 2, 1 error -> 1, >=2 errors -> 0
+    // Currently using simulated error count.
+    
+    // For now, increasing the simulation range slightly to test the logic (0 to 4 errors)
+    let misspelledCount = Math.floor(Math.random() * 5); 
 
-    // G. GENERAL / STYLE (Max 2)
-    let general = (structure > 0 && vocabulary > 0) ? 2 : 1;
+    let spelling = 2; // Default full marks
+    if (misspelledCount === 1) {
+        spelling = 1;
+    } else if (misspelledCount >= 2) {
+        spelling = 0;
+    }
+
+    // G. GENERAL LINGUISTIC RANGE (Max 2) - Formerly 'General'
+    // Updated to be same as CONTENT as per user request
+    let general = content; // User request: marks of general... same as content
+
 
     /* ---------- FINAL TOTALS ---------- */
 
     // Total Score (PTE max is usually 15 for essay)
-    const totalMax = 15;
+    // Total Score (Adjusted max since Content is now max 2 instead of 3)
+    const totalMax = 14;
     const rawScore = content + grammar + spelling + vocabulary + form + structure + general;
     
     // Scale it to a 0-90 scale (PTE standard)
