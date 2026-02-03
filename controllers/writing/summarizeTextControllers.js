@@ -194,14 +194,51 @@ export const submitSummarizeWrittenAttempt = async (req, res) => {
     const wordCount = words.length;
 
     /* -------- FORM RULE -------- */
-    const formScore = wordCount >= 5 && wordCount <= 75 ? 1 : 0;
+    let formScore = wordCount >= 5 && wordCount <= 75 ? 1 : 0;
+    
+    // Check for double dots ".."
+    if (summaryText.includes("..")) {
+        formScore = 0;
+    }
 
     /* -------- DUMMY AI LOGIC (REPLACE LATER) -------- */
-    const content = Math.min(4, Math.floor(wordCount / 20));
-    const grammar = 2;
-    const vocabulary = 2;
+    let content = Math.min(4, Math.floor(wordCount / 20));
+    let grammar = 2;
+    let vocabulary = 2;
 
-    const score = content + grammar + vocabulary + formScore;
+    // If form is 0 (due to word count or double dots), total score is 0
+    let score = 0;
+    if (formScore === 1) {
+       score = content + grammar + vocabulary + formScore;
+    } else {
+       // If form is invalid, usually other scores might strictly be 0 or penalized.
+       // User said "give marks 0", so we default everything to 0 if they fail this check?
+       // Let's set total score to 0 directly if ".." is present, overriding everything.
+       if (summaryText.includes("..")) {
+           content = 0;
+           grammar = 0;
+           vocabulary = 0;
+           formScore = 0;
+           score = 0;
+       } else {
+           // Standard word count failure logic (usually keeps component scores but form is 0)
+           // But PTE rule: If form is 0, Content is 0.
+           // For now, let's keep the user's specific request about ".." separate/explicit.
+           score = content + grammar + vocabulary + formScore;
+       }
+    }
+    
+    // Refined logic based on "give marks 0":
+    if (summaryText.includes("..")) {
+        score = 0;
+        content = 0;
+        grammar = 0;
+        vocabulary = 0;
+        formScore = 0;
+    } else {
+        // Recalculate if not zeroed out
+        score = content + grammar + vocabulary + formScore;
+    }
 
     const readingScore = score / 2;
     const writingScore = score / 2;
