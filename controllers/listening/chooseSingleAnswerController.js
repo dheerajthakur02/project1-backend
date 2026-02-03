@@ -165,6 +165,46 @@ export const addChooseSingleAnswerQuestion = async (req, res) => {
   }
 };
 
+export const getChooseSingleAnswerCommunityAttempts = async (req, res) => {
+  try {
+    const attempts = await ChooseSingleAnswerAttempt.aggregate([
+      { $sort: { createdAt: -1 } },
+      { $group: { _id: "$userId", attempts: { $push: "$$ROOT" } } },
+      { $project: { attempts: { $slice: ["$attempts", 15] } } },
+      { $unwind: "$attempts" },
+      { $replaceRoot: { newRoot: "$attempts" } },
+
+      { $lookup: { from: "users", localField: "userId", foreignField: "_id", as: "user" } },
+      { $unwind: "$user" },
+
+      {
+        $lookup: {
+          from: ChooseSingleAnswerQuestion.collection.name,
+          localField: "questionId",
+          foreignField: "_id",
+          as: "question"
+        }
+      },
+      { $unwind: "$question" },
+
+      {
+        $project: {
+          score: 1,
+          maxScore: 1,
+          selectedOption: 1,
+          createdAt: 1,
+          "user.name": 1,
+          "question.title": 1
+        }
+      }
+    ]);
+
+    res.status(200).json({ success: true, data: attempts });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // ---------- DELETE QUESTION ----------
 export const deleteChooseSingleAnswerQuestion = async (req, res) => {
   try {

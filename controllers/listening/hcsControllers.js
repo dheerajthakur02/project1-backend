@@ -257,6 +257,49 @@ export const addHighlightSummaryAttempt = async (req, res) => {
   }
 };
 
+export const getHighlightSummaryCommunityAttempts = async (req, res) => {
+  try {
+    const attempts = await HighlightSummaryAttempt.aggregate([
+      { $sort: { createdAt: -1 } },
+
+      { $group: { _id: "$userId", attempts: { $push: "$$ROOT" } } },
+      { $project: { attempts: { $slice: ["$attempts", 15] } } },
+      { $unwind: "$attempts" },
+      { $replaceRoot: { newRoot: "$attempts" } },
+
+      { $lookup: { from: "users", localField: "userId", foreignField: "_id", as: "user" } },
+      { $unwind: "$user" },
+
+      {
+        $lookup: {
+          from: HighlightSummaryQuestion.collection.name,
+          localField: "questionId",
+          foreignField: "_id",
+          as: "question"
+        }
+      },
+      { $unwind: "$question" },
+
+      {
+        $project: {
+          score: 1,
+          maxScore: 1,
+          summaryText: 1,
+          createdAt: 1,
+          timeTaken: 1,
+          "user.name": 1,
+          "question.title": 1
+        }
+      }
+    ]);
+
+    res.status(200).json({ success: true, data: attempts });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
 export const deleteQuestion = async (req, res) => {
   try {
     const question = await HighlightSummaryQuestion.findById(req.params.id);

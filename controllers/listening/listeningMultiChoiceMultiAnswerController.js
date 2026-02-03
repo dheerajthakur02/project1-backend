@@ -164,6 +164,90 @@ export const submitAttempt = async (req, res) => {
 };
 
 
+// Get community attempts (Listening MCM) – max 15 latest per user
+export const getListeningMCMCommunityAttempts = async (req, res) => {
+  try {
+    const attempts = await ListeningMultiChoiceMultiAnswerAttempt.aggregate([
+      // 1️⃣ Sort latest attempts first
+      { $sort: { createdAt: -1 } },
+
+      // 2️⃣ Group attempts per user
+      {
+        $group: {
+          _id: "$userId",
+          attempts: { $push: "$$ROOT" }
+        }
+      },
+
+      // 3️⃣ Limit each user to 15 attempts
+      {
+        $project: {
+          attempts: { $slice: ["$attempts", 15] }
+        }
+      },
+
+      // 4️⃣ Flatten attempts
+      { $unwind: "$attempts" },
+
+      // 5️⃣ Replace root
+      { $replaceRoot: { newRoot: "$attempts" } },
+
+      // 6️⃣ Populate user
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      { $unwind: "$user" },
+
+      // 7️⃣ Populate question
+      {
+        $lookup: {
+          from: "listeningmultichoicemultianswers",
+          localField: "questionId",
+          foreignField: "_id",
+          as: "question"
+        }
+      },
+      { $unwind: "$question" },
+
+      // 8️⃣ Final shape
+      {
+        $project: {
+          userId: 1,
+          questionId: 1,
+          userAnswers: 1,
+          score: 1,
+          maxScore: 1,
+          timeTaken: 1,
+          createdAt: 1,
+
+          "user.name": 1,
+          "user.avatar": 1,
+
+          "question.title": 1,
+          "question.audioUrl": 1
+        }
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      count: attempts.length,
+      data: attempts
+    });
+  } catch (error) {
+    console.error("GET LISTENING MCM COMMUNITY ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 
 // @desc    Update MCMA Question
 // @route   PUT /api/listening-multi-choice-multi-answer/:id

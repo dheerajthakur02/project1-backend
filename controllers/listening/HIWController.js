@@ -102,6 +102,47 @@ export const updateHIWQuestion = async (req, res) => {
   }
 };
 
+export const getHIWCommunityAttempts = async (req, res) => {
+  try {
+    const attempts = await HIWAttempt.aggregate([
+      { $sort: { createdAt: -1 } },
+      { $group: { _id: "$userId", attempts: { $push: "$$ROOT" } } },
+      { $project: { attempts: { $slice: ["$attempts", 15] } } },
+      { $unwind: "$attempts" },
+      { $replaceRoot: { newRoot: "$attempts" } },
+
+      { $lookup: { from: "users", localField: "userId", foreignField: "_id", as: "user" } },
+      { $unwind: "$user" },
+
+      {
+        $lookup: {
+          from: HIWQuestion.collection.name,
+          localField: "questionId",
+          foreignField: "_id",
+          as: "question"
+        }
+      },
+      { $unwind: "$question" },
+
+      {
+        $project: {
+          score: 1,
+          correctCount: 1,
+          wrongCount: 1,
+          missedCount: 1,
+          createdAt: 1,
+          "user.name": 1,
+          "question.title": 1
+        }
+      }
+    ]);
+
+    res.status(200).json({ success: true, data: attempts });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 
 // @desc    Get all HIW Questions
 // @route   GET /api/hiw

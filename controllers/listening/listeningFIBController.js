@@ -122,6 +122,89 @@ export const getListeningFIBQuestionsWithAttempts = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+// Community attempts for Listening FIB (max 15 latest per user)
+export const getListeningFIBCommunityAttempts = async (req, res) => {
+  try {
+    const attempts = await ListeningFIBAttempt.aggregate([
+      /* 1️⃣ Latest first */
+      { $sort: { createdAt: -1 } },
+
+      /* 2️⃣ Group by user */
+      {
+        $group: {
+          _id: "$userId",
+          attempts: { $push: "$$ROOT" }
+        }
+      },
+
+      /* 3️⃣ Limit to 15 per user */
+      {
+        $project: {
+          attempts: { $slice: ["$attempts", 15] }
+        }
+      },
+
+      /* 4️⃣ Flatten */
+      { $unwind: "$attempts" },
+      { $replaceRoot: { newRoot: "$attempts" } },
+
+      /* 5️⃣ Populate user */
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      { $unwind: "$user" },
+
+      /* 6️⃣ Populate question */
+      {
+        $lookup: {
+          from: ListeningFIBQuestion.collection.name,
+          localField: "questionId",
+          foreignField: "_id",
+          as: "question"
+        }
+      },
+      { $unwind: "$question" },
+
+      /* 7️⃣ Final shape */
+      {
+        $project: {
+          _id: 1,
+          userId: 1,
+          questionId: 1,
+          userAnswers: 1,
+          score: 1,
+          maxScore: 1,
+          timeTaken: 1,
+          createdAt: 1,
+
+          "user.name": 1,
+          "user.avatar": 1,
+
+          "question.title": 1,
+          "question.audioUrl": 1
+        }
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      count: attempts.length,
+      data: attempts
+    });
+  } catch (error) {
+    console.error("GET LISTENING FIB COMMUNITY ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 
 export const deleteQuestion = async (req, res) => {
   try {
