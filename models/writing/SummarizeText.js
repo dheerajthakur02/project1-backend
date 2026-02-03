@@ -23,6 +23,10 @@ const summarizeTextQuestionSchema = new mongoose.Schema(
       type: Number, // seconds
       required: true,
     },
+    modelAnswer: {
+      type: String,
+      required: true,
+    },
   },
   { timestamps: true }
 );
