@@ -102,47 +102,65 @@ export const updateHIWQuestion = async (req, res) => {
   }
 };
 
-export const getHIWCommunityAttempts = async (req, res) => {
+export const getCommunityAttempts = async (req, res) => {
   try {
-    const attempts = await HIWAttempt.aggregate([
-      { $sort: { createdAt: -1 } },
-      { $group: { _id: "$userId", attempts: { $push: "$$ROOT" } } },
-      { $project: { attempts: { $slice: ["$attempts", 15] } } },
-      { $unwind: "$attempts" },
-      { $replaceRoot: { newRoot: "$attempts" } },
+    const { questionId } = req.params;
 
-      { $lookup: { from: "users", localField: "userId", foreignField: "_id", as: "user" } },
-      { $unwind: "$user" },
+    if (!questionId) {
+      return res.status(400).json({
+        success: false,
+        message: "questionId is required",
+      });
+    }
 
+    const data = await HIWAttempt.aggregate([
       {
-        $lookup: {
-          from: HIWQuestion.collection.name,
-          localField: "questionId",
-          foreignField: "_id",
-          as: "question"
-        }
+        $match: {
+          questionId: new mongoose.Types.ObjectId(questionId),
+        },
       },
-      { $unwind: "$question" },
 
+      // Sort latest attempts first
+      { $sort: { createdAt: -1 } },
+
+      // Group attempts per user
+      {
+        $group: {
+          _id: "$userId",
+          attempts: { $push: "$$ROOT" },
+        },
+      },
+
+      // Limit to 15 attempts per user
       {
         $project: {
-          score: 1,
-          correctCount: 1,
-          wrongCount: 1,
-          missedCount: 1,
-          createdAt: 1,
-          "user.name": 1,
-          "question.title": 1
-        }
-      }
+          userId: "$_id",
+          attempts: { $slice: ["$attempts", 15] },
+          _id: 0,
+        },
+      },
+
+      // Optional: sort users by most recent attempt
+      {
+        $sort: {
+          "attempts.0.createdAt": -1,
+        },
+      },
     ]);
 
-    res.status(200).json({ success: true, data: attempts });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data,
+    });
+  } catch (error) {
+    console.error("COMMUNITY ATTEMPTS ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
-
 
 // @desc    Get all HIW Questions
 // @route   GET /api/hiw

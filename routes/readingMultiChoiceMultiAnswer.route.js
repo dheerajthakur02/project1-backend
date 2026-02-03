@@ -6,6 +6,7 @@ import {
   submitAttempt,
   getAttempts,
   getAll,
+  getCommunityAttempts,
 } from "../controllers/readingMultiChoiceMultiAnswer.controller.js";
 import { authorize } from "../middlewares/authMiddleware.js";
 
@@ -20,5 +21,5 @@ router.get("/:id", getQuestionById);
 router.post("/submit", checkPracticeLimit, submitAttempt);
 router.get("/attempts/all", getAll);
 router.get("/attempts/:questionId", authorize(), getAttempts);
-
+router.get("/:questionId/community", getCommunityAttempts)
 export default router;
