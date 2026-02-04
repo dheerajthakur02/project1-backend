@@ -6,7 +6,8 @@ import {
   submitAttempt,
   getAttempts,
   deleteQuestion,
-  updateQuestion
+  updateQuestion,
+  getWriteFromDictationCommunityAttempts
 } from "../../controllers/listening/writeFromDictationController.js";
 
 import { checkPracticeLimit } from "../../middlewares/practiceLimitMiddleware.js";
@@ -18,6 +19,7 @@ router.post("/create", upload.single("audio"), createQuestion);
 
 // Get all questions
 router.get("/", getQuestions);
+router.get("/community", getWriteFromDictationCommunityAttempts);
 router.get("/questions/:userId", getQuestions);
 
 // Submit attempt

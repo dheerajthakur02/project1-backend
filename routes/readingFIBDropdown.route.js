@@ -8,6 +8,7 @@ import {
   getAll,
   updateQuestion,
   deleteQuestion,
+  getCommunityAttempts,
 } from "../controllers/readingFIBDropdown.controller.js";
 import { authorize } from "../middlewares/authMiddleware.js"; // Assuming you have an auth middleware
 
@@ -24,5 +25,6 @@ router.get("/attempts/all", getAll);
 router.put("/:id", updateQuestion)
 router.get("/attempts/:questionId", authorize(), getAttempts); // New route for attempts history
 router.delete("/:id", deleteQuestion)
+router.get("/:questionId/community",getCommunityAttempts)
 
 export default router;

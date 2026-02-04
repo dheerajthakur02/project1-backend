@@ -5,6 +5,7 @@ import {
   getQuestionById,
   submitAttempt,
   getAttempts,
+  getCommunityAttempts,
 } from "../controllers/readingReorder.controller.js";
 import { authorize } from "../middlewares/authMiddleware.js";
 
@@ -18,5 +19,6 @@ router.get("/get/:userId", getQuestions);
 router.get("/:id", getQuestionById);
 router.post("/submit", checkPracticeLimit, submitAttempt);
 router.get("/attempts/:questionId", authorize(), getAttempts);
+router.get("/:questionId/community", getCommunityAttempts)
 
 export default router;

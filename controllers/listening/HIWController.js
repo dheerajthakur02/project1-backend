@@ -102,6 +102,65 @@ export const updateHIWQuestion = async (req, res) => {
   }
 };
 
+export const getCommunityAttempts = async (req, res) => {
+  try {
+    const { questionId } = req.params;
+
+    if (!questionId) {
+      return res.status(400).json({
+        success: false,
+        message: "questionId is required",
+      });
+    }
+
+    const data = await HIWAttempt.aggregate([
+      {
+        $match: {
+          questionId: new mongoose.Types.ObjectId(questionId),
+        },
+      },
+
+      // Sort latest attempts first
+      { $sort: { createdAt: -1 } },
+
+      // Group attempts per user
+      {
+        $group: {
+          _id: "$userId",
+          attempts: { $push: "$$ROOT" },
+        },
+      },
+
+      // Limit to 15 attempts per user
+      {
+        $project: {
+          userId: "$_id",
+          attempts: { $slice: ["$attempts", 15] },
+          _id: 0,
+        },
+      },
+
+      // Optional: sort users by most recent attempt
+      {
+        $sort: {
+          "attempts.0.createdAt": -1,
+        },
+      },
+    ]);
+
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data,
+    });
+  } catch (error) {
+    console.error("COMMUNITY ATTEMPTS ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
 // @desc    Get all HIW Questions
 // @route   GET /api/hiw

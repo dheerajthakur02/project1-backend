@@ -6,6 +6,7 @@ import { submitSSTAttempt,
     getQuestionsWithAttempts,
     deleteQuestion,
     getAllQuestions,
+    getCommunityAttempts,
  } from '../../controllers/listening/sstControllers.js';
 import { upload } from '../../middlewares/upload.js';
 
@@ -20,6 +21,8 @@ router.get('/questions/:userId', getQuestionsWithAttempts);
 router.put('/questions/:id', upload.single('audio'), updateQuestion); // Partial update
 
 router.delete('/:id', deleteQuestion)
+
+router.get("/community",getCommunityAttempts)
 
 // Submit attempt
 router.post('/submit', upload.none(), checkPracticeLimit, submitSSTAttempt);

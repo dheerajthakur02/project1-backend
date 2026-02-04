@@ -118,6 +118,47 @@ export const getQuestions = async (req, res) => {
     }
 };
 
+export const getWriteFromDictationCommunityAttempts = async (req, res) => {
+  try {
+    const attempts = await WriteFromDictationAttempt.aggregate([
+      { $sort: { createdAt: -1 } },
+      { $group: { _id: "$userId", attempts: { $push: "$$ROOT" } } },
+      { $project: { attempts: { $slice: ["$attempts", 15] } } },
+      { $unwind: "$attempts" },
+      { $replaceRoot: { newRoot: "$attempts" } },
+
+      { $lookup: { from: "users", localField: "userId", foreignField: "_id", as: "user" } },
+      { $unwind: "$user" },
+
+      {
+        $lookup: {
+          from: WriteFromDictationQuestion.collection.name,
+          localField: "questionId",
+          foreignField: "_id",
+          as: "question"
+        }
+      },
+      { $unwind: "$question" },
+
+      {
+        $project: {
+          totalScore: 1,
+          scores: 1,
+          studentTranscript: 1,
+          createdAt: 1,
+          "user.name": 1,
+          "question.audioUrl": 1
+        }
+      }
+    ]);
+
+    res.status(200).json({ success: true, data: attempts });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
 export const deleteQuestion = async (req, res) => {
   try {
     const question = await WriteFromDictationQuestion.findById(req.params.id);

@@ -264,6 +264,88 @@ export const deleteQuestion = async (req, res) => {
   }
 };
 
+export const getCommunityAttempts = async (req, res) => {
+  try {
+    const attempts = await SSTAttempt.aggregate([
+      // 1️⃣ Sort latest attempts first
+      { $sort: { createdAt: -1 } },
+
+      // 2️⃣ Group attempts per user
+      {
+        $group: {
+          _id: "$userId",
+          attempts: { $push: "$$ROOT" }
+        }
+      },
+
+      // 3️⃣ Limit each user to max 15 attempts
+      {
+        $project: {
+          attempts: { $slice: ["$attempts", 15] }
+        }
+      },
+
+      // 4️⃣ Flatten attempts array
+      { $unwind: "$attempts" },
+
+      // 5️⃣ Replace root with attempt object
+      { $replaceRoot: { newRoot: "$attempts" } },
+
+      // 6️⃣ Populate user details
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      { $unwind: "$user" },
+
+      // 7️⃣ Populate question details
+      {
+        $lookup: {
+          from: "sstquestions",
+          localField: "questionId",
+          foreignField: "_id",
+          as: "question"
+        }
+      },
+      { $unwind: "$question" },
+
+      // 8️⃣ Final shape
+      {
+        $project: {
+          userId: 1,
+          questionId: 1,
+          scores: 1,
+          totalScore: 1,
+          overallScore: 1,
+          timeTaken: 1,
+          summaryText: 1,
+          createdAt: 1,
+          "user.name": 1,
+          "user.avatar": 1,
+          "question.title": 1
+        }
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      count: attempts.length,
+      data: attempts
+    });
+  } catch (error) {
+    console.error("GET COMMUNITY ATTEMPTS ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+
 
 
 
