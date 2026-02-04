@@ -10,7 +10,9 @@ router.get("/", getAllWriting);
 router.get("/:id", getWritingById);
 router.put("/:id", updateWriting);
 router.delete("/:id", deleteWriting);
-router.post("/attempt", submitFullWritingMockTest);
+import { checkPracticeLimit } from "../../middlewares/practiceLimitMiddleware.js";
+
+router.post("/attempt", checkPracticeLimit, submitFullWritingMockTest);
 
 // In your routes/writingRoutes.js
 router.get("/result/:resultId", getWritingResultById);

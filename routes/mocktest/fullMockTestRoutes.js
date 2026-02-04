@@ -55,6 +55,8 @@ router.get("/results/my", authorize(), (req, res, next) => {
  * @desc    Submit aggregated answers for a full mock test
  * @access  Public/User
  */
-router.post("/:id/submit", authorize(), upload.any(), submitFullMockTest);
+import { checkPracticeLimit } from "../../middlewares/practiceLimitMiddleware.js";
+
+router.post("/:id/submit", authorize(), upload.any(), checkPracticeLimit, submitFullMockTest);
 
 export default router;
