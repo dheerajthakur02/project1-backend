@@ -1,5 +1,5 @@
 import express from "express";
-import { createAttempt, getAttempts, getAttemptsforCommunity } from "../controllers/attempt.controller.js";
+import { createAttempt, getAttempts, getAttemptsforCommunity, saveAttempt } from "../controllers/attempt.controller.js";
 
 import { authorize } from "../middlewares/authMiddleware.js";
 
@@ -10,5 +10,6 @@ const router = express.Router();
 router.post("/", authorize(), checkPracticeLimit, createAttempt);
 router.get("/history/:paragraphId", authorize(), getAttempts);
 router.get("/community/:paragraphId",  getAttemptsforCommunity);
+router.post("/save/attempt", saveAttempt)
 
 export default router;

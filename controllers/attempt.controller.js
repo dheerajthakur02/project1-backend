@@ -305,7 +305,9 @@ export const getAttemptsforCommunity = async (req, res) => {
 
 export const saveAttempt = async (req, res) => {
   try {
+   
     const response = await Attempt.create(req.body);
+
 
     return res.status(201).json({
       success: true,

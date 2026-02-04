@@ -12,8 +12,7 @@ const attemptSchema = new mongoose.Schema({
     required: true,
   },
   transcript: {
-    type: String,
-    required: true,
+    type: String
   },
   score: {
     type: Number,
