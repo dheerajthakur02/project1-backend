@@ -36,7 +36,7 @@ export const createOrder = async (req, res) => {
 export const verifyPayment = async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, planType, amount } = req.body;
-    const userId = req.user.userId; // Assuming auth middleware adds user to req
+    const userId = req.user.id; // Corrected from req.user.userId
 
     const body = razorpay_order_id + "|" + razorpay_payment_id;
 

@@ -10,7 +10,9 @@ router.post("/", createSpeaking);
 router.get("/:id", getSpeakingById);
 router.put("/:id", updateSpeaking);
 
-router.post("/calculate-result", calculateSpeakingResult);
+import { checkPracticeLimit } from "../../middlewares/practiceLimitMiddleware.js";
+
+router.post("/calculate-result", checkPracticeLimit, calculateSpeakingResult);
 router.get("/results/my", authorize(), getUserSpeakingResults);
 router.get("/result/:id", getSpeakingResultById);
 

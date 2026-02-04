@@ -11,7 +11,9 @@ import { authorize } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/submit", authorize(), submitRL);
+import { checkPracticeLimit } from "../middlewares/practiceLimitMiddleware.js";
+
+router.post("/submit", authorize(), checkPracticeLimit, submitRL);
 
 router.post("/", createReadAloud);
 router.get("/", getAllReadAloud);

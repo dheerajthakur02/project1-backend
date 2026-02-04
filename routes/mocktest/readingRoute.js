@@ -34,8 +34,10 @@ router.get("/:id", getReadingById);
 // ✏️ Update Reading Section
 router.put("/:id", updateReading);
 
+import { checkPracticeLimit } from "../../middlewares/practiceLimitMiddleware.js";
+
 // 🧮 Calculate & Save Reading Result
-router.post("/result/calculate", calculateReadingResult);
+router.post("/result/calculate", checkPracticeLimit, calculateReadingResult);
 
 // 📜 Get User Reading Results
 router.get("/results/my", authorize(), getUserReadingResults);
