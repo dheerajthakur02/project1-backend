@@ -16,8 +16,117 @@ import { AttemptReadingFIBDragDrop } from "../models/attemptReadingFIBDragDrop.m
 import { AttemptReadingMultiChoiceMultiAnswer } from "../models/attemptReadingMultiChoiceMultiAnswer.model.js";
 import { AttemptReadingMultiChoiceSingleAnswer } from "../models/attemptReadingMultiChoiceSingleAnswer.model.js";
 
-// Models for Listening (assuming they follow similar pattern or checking file structure if needed, adding core ones found)
-// If you need more listening models, import them here.
+// --- Question Models Imports ---
+import ReadAloud from "../models/readAloud.model.js";
+import RepeatQuestion from "../models/repeat.model.js";
+import { ImageQuestion } from "../models/image.model.js";
+import { RetellLectureQuestion } from "../models/retell.model.js";
+import { ShortAnswerQuestion } from "../models/shortAnswer.model.js";
+import { SummarizeGroupQuestion } from "../models/summarizeGroup.model.js";
+import { RespondSituationQuestion } from "../models/respondSituation.model.js";
+
+import { SummarizeTextQuestion } from "../models/writing/SummarizeText.js";
+import { WriteEssayQuestion } from "../models/writing/Essay.js";
+
+import { ReadingFIBDropdown } from "../models/readingFIBDropdown.model.js";
+import { ReadingMultiChoiceMultiAnswer } from "../models/readingMultiChoiceMultiAnswer.model.js";
+import { ReadingMultiChoiceSingleAnswer } from "../models/readingMultiChoiceSingleAnswer.model.js";
+import { ReadingFIBDragDrop } from "../models/readingFIBDragDrop.model.js";
+import { ReadingReorder } from "../models/readingReorder.model.js";
+
+import { SSTQuestion } from "../models/listening/SSTQuestion.js";
+import { ListeningMultiChoiceMultiAnswer } from "../models/listening/ListeningMultiChoiceMultiAnswer.js";
+import { ListeningFIBQuestion } from "../models/listening/ListeningFIBQuestion.js";
+import { HighlightSummaryQuestion } from "../models/listening/HCSQuestion.js";
+import { ChooseSingleAnswerQuestion } from "../models/listening/ChooseSingleAnswer.js";
+import { SelectMissingWordQuestion } from "../models/listening/SelectMissingWord.js";
+import { HIWQuestion } from "../models/listening/HIW.js";
+import { WriteFromDictationQuestion } from "../models/listening/WriteFromDictation.js";
+
+// --- Attempt Models (Additional Imports if needed) ---
+import { ListeningMultiChoiceMultiAnswerAttempt } from "../models/listening/ListeningMultiChoiceMultiAnswer.js";
+import { ListeningFIBAttempt } from "../models/listening/ListeningFIBQuestion.js";
+import { HighlightSummaryAttempt } from "../models/listening/HCSQuestion.js";
+import { ChooseSingleAnswerAttempt } from "../models/listening/ChooseSingleAnswer.js";
+import { SelectMissingWordAttempt } from "../models/listening/SelectMissingWord.js";
+import { HIWAttempt } from "../models/listening/HIW.js";
+
+// Missing Attempts
+import { SummarizeGroupAttempt } from "../models/summarizeGroup.model.js";
+import { RespondSituationAttempt } from "../models/respondSituation.model.js";
+import { SSTAttempt } from "../models/listening/SSTQuestion.js";
+
+
+
+
+
+// --- Helper Function for Calculating Stats ---
+const calculatePracticeStatsHelper = async (userId) => {
+    // Helper: Get counts for a list of Module pairs [{ q: QuestionModel, a: AttemptModel }]
+    const calculateStats = async (modules) => {
+        let total = 0;
+        let practiced = 0;
+
+        for (const mod of modules) {
+            const qCount = await mod.q.countDocuments();
+            // Check unique attempts by this user
+            const aCount = await mod.a.distinct('questionId', { userId });
+            
+            total += qCount;
+            practiced += aCount.length;
+        }
+        return { total, practiced };
+    };
+
+    // 1. Speaking
+    const speakingModules = [
+        { q: ReadAloud, a: Attempt },
+        { q: RepeatQuestion, a: RepeatAttempt },
+        { q: ImageQuestion, a: ImageAttempt },
+        { q: RetellLectureQuestion, a: RetellLectureAttempt },
+        { q: ShortAnswerQuestion, a: ShortAnswerAttempt },
+        { q: SummarizeGroupQuestion, a: SummarizeGroupAttempt },
+        { q: RespondSituationQuestion, a: RespondSituationAttempt }
+    ];
+    const speakingStats = await calculateStats(speakingModules);
+
+    // 2. Writing
+    const writingModules = [
+        { q: SummarizeTextQuestion, a: SummarizeWrittenAttempt },
+        { q: WriteEssayQuestion, a: EssayAttempt }
+    ];
+    const writingStats = await calculateStats(writingModules);
+
+    // 3. Reading
+    const readingModules = [
+        { q: ReadingFIBDropdown, a: AttemptReadingFIBDropdown },
+        { q: ReadingMultiChoiceMultiAnswer, a: AttemptReadingMultiChoiceMultiAnswer },
+        { q: ReadingMultiChoiceSingleAnswer, a: AttemptReadingMultiChoiceSingleAnswer },
+        { q: ReadingFIBDragDrop, a: AttemptReadingFIBDragDrop },
+        { q: ReadingReorder, a: AttemptReadingReorder }
+    ];
+    const readingStats = await calculateStats(readingModules);
+
+    // 4. Listening
+    const listeningModules = [
+        { q: SSTQuestion, a: SSTAttempt },
+        { q: ListeningMultiChoiceMultiAnswer, a: ListeningMultiChoiceMultiAnswerAttempt },
+        { q: ListeningFIBQuestion, a: ListeningFIBAttempt },
+        { q: HighlightSummaryQuestion, a: HighlightSummaryAttempt },
+        { q: ChooseSingleAnswerQuestion, a: ChooseSingleAnswerAttempt },
+        { q: SelectMissingWordQuestion, a: SelectMissingWordAttempt },
+        { q: HIWQuestion, a: HIWAttempt },
+        { q: WriteFromDictationQuestion, a: WriteFromDictationAttempt }
+    ];
+    const listeningStats = await calculateStats(listeningModules);
+
+    return {
+        speaking: speakingStats,
+        writing: writingStats,
+        reading: readingStats,
+        listening: listeningStats
+    };
+};
 
 
 export const getDashboardData = async (req, res) => {
@@ -108,11 +217,16 @@ export const getDashboardData = async (req, res) => {
         mockScore = Math.round(totalScore / mockResults.length);
     }
 
+    // --- 5. Calculate Practice Stats ---
+    const practiceStats = await calculatePracticeStatsHelper(userId);
+
+
     res.status(200).json({
       success: true,
       data: {
         history,
-        mockScore
+        mockScore,
+        stats: practiceStats
       }
     });
 
@@ -120,4 +234,25 @@ export const getDashboardData = async (req, res) => {
     console.error("Dashboard Data Fetch Error:", error);
     res.status(500).json({ success: false, message: "Failed to fetch dashboard data" });
   }
+};
+
+
+export const getPracticeStats = async (req, res) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ success: false, message: "Unauthorized" });
+        }
+
+        const data = await calculatePracticeStatsHelper(userId);
+
+        res.status(200).json({
+            success: true,
+            data
+        });
+
+    } catch (error) {
+        console.error("Practice Stats Error:", error);
+        res.status(500).json({ success: false, message: "Failed to fetch practice stats" });
+    }
 };
