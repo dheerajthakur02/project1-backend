@@ -18,8 +18,8 @@ export const createVoucherOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid quantity" });
     }
 
-    // Price Logic: 17000 INR per voucher (inclusive of tax)
-    const UNIT_PRICE = 17000;
+    // Price Logic: 15999 INR per voucher (inclusive of tax)
+    const UNIT_PRICE = 15999;
     const totalAmount = quantity * UNIT_PRICE;
 
     const options = {
