@@ -5,7 +5,7 @@
 import {cloudinary} from "../config/cloudinary.js";
 import Question from "../models/repeat.model.js";
 import mongoose from "mongoose";
-
+import RepeatAttempt from "../models/attemptRepeat.model.js";
 // Upload Question
 export const addQuestion = async (req, res) => {
   const { title, prepareTime, answerTime, transcript } = req.body;
@@ -193,100 +193,83 @@ export const updateQuestion = async (req, res) => {
 
 import User from "../models/user.model.js";
 
-export const getQuestionsWithCommunityAttempts = async (req, res) => {
+export const getCommunityAttempts = async (req, res) => {
   try {
     const { questionId } = req.params;
 
-    const matchStage = questionId
-      ? { _id: new mongoose.Types.ObjectId(questionId) }
-      : {};
-
-    const questions = await Question.aggregate([
-      { $match: matchStage },
-
-      /* ---------------- LOOKUP COMMUNITY ATTEMPTS ---------------- */
+    const attempts = await RepeatAttempt.aggregate([
+      /* 1️⃣ Match question */
       {
-        $lookup: {
-          from: "repeatattempts",
-          let: { qId: "$_id" },
-          pipeline: [
-            /* Match only this question */
-            {
-              $match: {
-                $expr: { $eq: ["$questionId", "$$qId"] }
-              }
-            },
-
-            /* Sort latest attempts first */
-            { $sort: { createdAt: -1 } },
-
-            /* Group by user → collect all attempts per user */
-            {
-              $group: {
-                _id: "$userId",
-                attempts: { $push: "$$ROOT" } // collect all attempts for this user
-              }
-            },
-
-            /* Keep max 15 attempts per user */
-            {
-              $project: {
-                userId: "$_id",
-                attempts: { $slice: ["$attempts", 15] }
-              }
-            },
-
-            /* Populate user info */
-            {
-              $lookup: {
-                from: "users",
-                localField: "userId",
-                foreignField: "_id",
-                as: "user"
-              }
-            },
-            { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
-
-            /* Final shape */
-            {
-              $project: {
-                userId: 1,
-                user: { name: "$user.name" },
-                attempts: {
-                  score: 1,
-                  content: 1,
-                  fluency: 1,
-                  pronunciation: 1,
-                  studentAudio: 1,
-                  createdAt: 1
-                }
-              }
-            }
-          ],
-          as: "communityAttempts"
+        $match: {
+          questionId: new mongoose.Types.ObjectId(questionId)
         }
       },
 
-      /* Total number of users who attempted */
+      /* 2️⃣ Latest first */
+      { $sort: { createdAt: -1 } },
+
+      /* 3️⃣ Group per user */
       {
-        $addFields: {
-          totalCommunityUsers: { $size: "$communityAttempts" }
+        $group: {
+          _id: "$userId",
+          attempts: { $push: "$$ROOT" }
+        }
+      },
+
+      /* 4️⃣ Limit max 15 per user */
+      {
+        $project: {
+          attempts: { $slice: ["$attempts", 15] }
+        }
+      },
+
+      /* 5️⃣ Flatten back */
+      { $unwind: "$attempts" },
+      { $replaceRoot: { newRoot: "$attempts" } },
+
+      /* 6️⃣ Populate user */
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      { $unwind: "$user" },
+
+      /* 7️⃣ Shape for UI */
+      {
+        $project: {
+          _id: 1,
+          score: 1,
+          content: 1,
+          fluency: 1,
+          pronunciation: 1,
+          transcript: 1,
+          studentAudio: 1,
+          createdAt: 1,
+          user: {
+            _id: "$user._id",
+            name: "$user.name"
+          }
         }
       }
     ]);
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      data: questions
+      data: attempts
     });
-  } catch (error) {
-    console.error("Get Questions with Community Attempts Error:", error);
-    return res.status(500).json({
+  } catch (err) {
+    console.error("Community attempts error", err);
+    res.status(500).json({
       success: false,
-      message: error.message
+      message: err.message
     });
   }
 };
+
 
 
 

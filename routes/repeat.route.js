@@ -6,7 +6,7 @@ import {
   updateQuestion,
   deleteQuestion,
   getQuestionsWithAttempts,
-  getQuestionsWithCommunityAttempts,
+  getCommunityAttempts,
 } from "../controllers/repeatSentence.controller.js";
 import { authorize } from "../middlewares/authMiddleware.js";
 import { createRepeatAttempt } from "../controllers/attemptRepeat.controller.js";
@@ -19,7 +19,7 @@ router.get("/all", getAllQuestions);
 router.get("/get/:userId", getQuestionsWithAttempts);
 router.put("/:id", upload.single("audio"), updateQuestion);
 router.delete("/:id", deleteQuestion);
-router.get("/community/:questionId", getQuestionsWithCommunityAttempts)
+router.get("/community/:questionId", getCommunityAttempts)
 
 import { checkPracticeLimit } from "../middlewares/practiceLimitMiddleware.js";
 
