@@ -194,7 +194,13 @@ export const submitSummarizeWrittenAttempt = async (req, res) => {
     const wordCount = words.length;
 
     /* -------- FORM RULE -------- */
-    let formScore = wordCount >= 5 && wordCount <= 75 ? 1 : 0;
+    // Logic: 50-70 words -> 2 marks, 40-49 words -> 1 mark, else 0
+    let formScore = 0;
+    if (wordCount >= 50 && wordCount <= 70) {
+        formScore = 2;
+    } else if (wordCount >= 40 && wordCount <= 49) {
+        formScore = 1;
+    }
     
     // Check for double dots ".."
     if (summaryText.includes("..")) {
