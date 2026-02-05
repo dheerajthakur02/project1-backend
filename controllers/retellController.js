@@ -25,7 +25,7 @@ export const getAllQuestions = async (req, res) => {
 
 export const addRetellQuestion = async (req, res) => {
   try {
-     const { title, prepareTime, answerTime, difficulty } = req.body;
+     const { title, prepareTime, answerTime, difficulty, isPredictive } = req.body;
 
     if (!req.file) {
       return res.status(400).json({
@@ -64,6 +64,7 @@ export const addRetellQuestion = async (req, res) => {
       audioUrl: audio.secure_url,
       cloudinaryId: audio.public_id,
       transcript: transcript,
+      isPredictive,
       prepareTime: prepareTime || 10,
       answerTime: answerTime || 40,
       difficulty: difficulty || "Medium"
@@ -97,7 +98,7 @@ export const updateRetellQuestion = async (req, res) => {
       prepareTime,
       answerTime,
       difficulty,
-     
+     isPredictive
     } = req.body;
 
     /* -------- AUDIO UPDATE -------- */
@@ -141,6 +142,7 @@ export const updateRetellQuestion = async (req, res) => {
     if (prepareTime !== undefined) question.prepareTime = prepareTime;
     if (answerTime !== undefined) question.answerTime = answerTime;
     if (difficulty !== undefined) question.difficulty = difficulty;
+    if(isPredictive !== undefined) question.isPredictive = isPredictive
 
     await question.save();
     res.json(question);

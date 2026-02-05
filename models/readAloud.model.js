@@ -18,6 +18,10 @@ const readAloudSchema = new mongoose.Schema(
       type: String,
       enum: ["easy", "medium", "difficult"],
     },
+    isPredictive:{
+      type: Boolean,
+      default: false
+    }
   },
   {
     timestamps: true,

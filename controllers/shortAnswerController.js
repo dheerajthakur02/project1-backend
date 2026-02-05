@@ -19,7 +19,7 @@ export const getAllQuestions = async (req, res) => {
 
 export const addQuestion = async (req, res) => {
   try {
-    const { title, prepareTime, answerTime, answer, transcript, difficulty } = req.body;
+    const { title, prepareTime, answerTime, answer, transcript, difficulty, isPredictive } = req.body;
 
     if (!req.file) {
       return res.status(400).json({ message: "Audio file is required" });
@@ -35,6 +35,7 @@ export const addQuestion = async (req, res) => {
       answerTime,
       answer,
       transcript,
+      isPredictive,
       difficulty: difficulty || "easy",
       audioUrl: audio.secure_url,
       cloudinaryId: audio.public_id,
@@ -153,7 +154,7 @@ export const updateQuestion = async (req, res) => {
       return res.status(404).json({ message: "Question not found" });
     }
 
-    const { title, prepareTime, answerTime, answer, transcript, difficulty } = req.body;
+    const { title, prepareTime, answerTime, answer, transcript, difficulty, isPredictive } = req.body;
 
     if (req.file) {
       await cloudinary.uploader.destroy(question.cloudinaryId, {
@@ -174,6 +175,7 @@ export const updateQuestion = async (req, res) => {
     if (prepareTime !== undefined) question.prepareTime = prepareTime;
     if (answerTime !== undefined) question.answerTime = answerTime;
     if (difficulty !== undefined) question.difficulty = difficulty;
+    if (isPredictive !== undefined) question.isPredictive = isPredictive;
 
     await question.save();
     res.json(question);

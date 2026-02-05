@@ -33,6 +33,10 @@ const shortAnswerQuestionSchema = new mongoose.Schema(
       type: Number, // seconds
       required: true,
     },
+    isPredictive:{
+      type: Boolean,
+      default: false
+    }
   },
   { timestamps: true }
 );
