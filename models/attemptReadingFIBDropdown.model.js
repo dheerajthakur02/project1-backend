@@ -26,6 +26,9 @@ const attemptReadingFIBDropdownSchema = new mongoose.Schema(
     maxScore: {
         type: Number,
         required: true,
+    },
+    timeTaken: {
+      type: Number, // duration in seconds
     }
   },
   { timestamps: true }

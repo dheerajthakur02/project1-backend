@@ -71,7 +71,7 @@ export const getQuestionById = async (req, res) => {
 // Submit an attempt
 export const submitAttempt = async (req, res) => {
   try {
-    const { userId, questionId, userOrder } = req.body;
+    const { userId, questionId, userOrder, timeTaken } = req.body;
 
     const question = await ReadingReorder.findById(questionId);
     if (!question) {
@@ -116,6 +116,7 @@ export const submitAttempt = async (req, res) => {
       pairResults,
       score,
       maxScore,
+      timeTaken
     });
 
     await newAttempt.save();

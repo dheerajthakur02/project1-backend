@@ -131,7 +131,7 @@ export const deleteQuestion = async (req, res) => {
 // Submit an attempt
 export const submitAttempt = async (req, res) => {
   try {
-    const { userId, questionId, userAnswers } = req.body;
+    const { userId, questionId, userAnswers, timeTaken } = req.body;
 
     const question = await ReadingFIBDropdown.findById(questionId);
     if (!question) {
@@ -168,6 +168,7 @@ export const submitAttempt = async (req, res) => {
       userAnswers: evaluatedAnswers,
       score,
       maxScore,
+      timeTaken
     });
 
     await newAttempt.save();

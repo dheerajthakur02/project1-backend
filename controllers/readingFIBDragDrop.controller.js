@@ -74,7 +74,7 @@ export const getQuestionById = async (req, res) => {
 // Submit an attempt
 export const submitAttempt = async (req, res) => {
   try {
-    const { questionId, userAnswers } = req.body;
+    const { questionId, userAnswers, timeTaken } = req.body;
     const userId = req.user?._id || req.user?.id || req.body.userId;
 
     const question = await ReadingFIBDragDrop.findById(questionId);
@@ -110,6 +110,7 @@ export const submitAttempt = async (req, res) => {
       userAnswers: evaluatedAnswers,
       score,
       maxScore,
+      timeTaken
     });
 
     await newAttempt.save();

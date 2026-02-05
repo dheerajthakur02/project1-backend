@@ -74,7 +74,7 @@ export const getQuestionById = async (req, res) => {
 // Submit an attempt
 export const submitAttempt = async (req, res) => {
   try {
-    const { userId, questionId, userSelectedOptions } = req.body;
+    const { userId, questionId, userSelectedOptions, timeTaken } = req.body;
     console.log("Received attempt data:", req.body);
 
     const question = await ReadingMultiChoiceMultiAnswer.findById(questionId);
@@ -108,6 +108,7 @@ export const submitAttempt = async (req, res) => {
       userSelectedOptions,
       score,
       maxScore,
+      timeTaken
     });
 
     await newAttempt.save();

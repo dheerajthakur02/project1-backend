@@ -32,6 +32,9 @@ const attemptReadingReorderSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    timeTaken: {
+        type: Number, // duration in seconds
+    },
   },
   { timestamps: true }
 );

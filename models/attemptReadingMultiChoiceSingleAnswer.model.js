@@ -24,6 +24,9 @@ const attemptReadingMultiChoiceSingleAnswerSchema = new mongoose.Schema(
       type: Number,
       default: 1,
     },
+    timeTaken: {
+      type: Number, // duration in seconds
+    },
   },
   { timestamps: true }
 );
