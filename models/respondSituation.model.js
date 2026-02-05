@@ -40,9 +40,9 @@ const RespondSituationQuestionSchema = new mongoose.Schema(
     modelAnswer: {
       type: String // ideal retell summary
     },
-    isPrediction: {
+    isPredictive:{
       type: Boolean,
-      default: false
+      required: true,
     }
   },
   { timestamps: true }
