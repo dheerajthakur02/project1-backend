@@ -19,7 +19,7 @@ router.post("/create", upload.single("audio"), createQuestion);
 
 // Get all questions
 router.get("/", getQuestions);
-router.get("/community", getWriteFromDictationCommunityAttempts);
+router.get("/:questionId/community", getWriteFromDictationCommunityAttempts);
 router.get("/questions/:userId", getQuestions);
 
 // Submit attempt

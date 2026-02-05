@@ -18,7 +18,7 @@ const upload = multer({ dest: "uploads/" });
 // Question routes
 router.post("/add", upload.single("audio"), addHighlightSummaryQuestion);
 router.get("/", getHighlightSummaryQuestions);
-router.get("/community", getHighlightSummaryCommunityAttempts);
+router.get("/:questionId/community", getHighlightSummaryCommunityAttempts);
 
 router.get("/questions/userId", getHighlightSummaryQuestions);
 router.put("/questions/:id", upload.single("audio"), updateQuestion)

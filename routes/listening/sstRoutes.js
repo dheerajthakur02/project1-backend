@@ -22,7 +22,7 @@ router.put('/questions/:id', upload.single('audio'), updateQuestion); // Partial
 
 router.delete('/:id', deleteQuestion)
 
-router.get("/community",getCommunityAttempts)
+router.get("/:questionId/community",getCommunityAttempts)
 
 // Submit attempt
 router.post('/submit', upload.none(), checkPracticeLimit, submitSSTAttempt);

@@ -120,7 +120,15 @@ export const getQuestions = async (req, res) => {
 
 export const getWriteFromDictationCommunityAttempts = async (req, res) => {
   try {
+
+    const {questionId} = req.params;
     const attempts = await WriteFromDictationAttempt.aggregate([
+       {
+                    $match: {
+                      questionId: new mongoose.Types.ObjectId(questionId),
+                    },
+                  },
+            
       { $sort: { createdAt: -1 } },
       { $group: { _id: "$userId", attempts: { $push: "$$ROOT" } } },
       { $project: { attempts: { $slice: ["$attempts", 15] } } },
@@ -149,7 +157,12 @@ export const getWriteFromDictationCommunityAttempts = async (req, res) => {
           "user.name": 1,
           "question.audioUrl": 1
         }
-      }
+      },
+       {
+        $sort: {
+          "attempts.0.createdAt": -1,
+        },
+      },
     ]);
 
     res.status(200).json({ success: true, data: attempts });

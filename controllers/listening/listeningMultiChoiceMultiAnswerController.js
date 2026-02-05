@@ -166,8 +166,16 @@ export const submitAttempt = async (req, res) => {
 
 // Get community attempts (Listening MCM) – max 15 latest per user
 export const getListeningMCMCommunityAttempts = async (req, res) => {
+  const {questionId} = req.params
   try {
     const attempts = await ListeningMultiChoiceMultiAnswerAttempt.aggregate([
+      {
+              $match: {
+                questionId: new mongoose.Types.ObjectId(questionId),
+              },
+            },
+      
+
       // 1️⃣ Sort latest attempts first
       { $sort: { createdAt: -1 } },
 
@@ -231,7 +239,12 @@ export const getListeningMCMCommunityAttempts = async (req, res) => {
           "question.title": 1,
           "question.audioUrl": 1
         }
-      }
+      },
+        {
+        $sort: {
+          "attempts.0.createdAt": -1,
+        },
+      },
     ]);
 
     res.status(200).json({

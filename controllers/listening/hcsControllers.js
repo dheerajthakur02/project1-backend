@@ -259,7 +259,14 @@ export const addHighlightSummaryAttempt = async (req, res) => {
 
 export const getHighlightSummaryCommunityAttempts = async (req, res) => {
   try {
+    const {questionId} = req.params;
     const attempts = await HighlightSummaryAttempt.aggregate([
+        {
+                    $match: {
+                      questionId: new mongoose.Types.ObjectId(questionId),
+                    },
+                  },
+            
       { $sort: { createdAt: -1 } },
 
       { $group: { _id: "$userId", attempts: { $push: "$$ROOT" } } },
@@ -290,7 +297,12 @@ export const getHighlightSummaryCommunityAttempts = async (req, res) => {
           "user.name": 1,
           "question.title": 1
         }
-      }
+      },
+       {
+        $sort: {
+          "attempts.0.createdAt": -1,
+        },
+      },
     ]);
 
     res.status(200).json({ success: true, data: attempts });

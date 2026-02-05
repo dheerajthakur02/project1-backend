@@ -24,6 +24,6 @@ router.get("/question/:id", getQuestionById);
 router.delete("/:id", deleteQuestion)
 router.post("/submit", checkPracticeLimit, submitAttempt);
 router.put("/:id",upload.single("audio"), updateQuestion)
-router.get("/community", getListeningMCMCommunityAttempts)
+router.get("/:questionId/community", getListeningMCMCommunityAttempts)
 
 export default router;
