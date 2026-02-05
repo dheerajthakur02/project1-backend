@@ -8,11 +8,9 @@ dotenv.config();
 const deepgram = createClient(process.env.API_KEY);
 
 // ---------- CREATE QUESTION ----------
-
-
 export const addChooseSingleAnswerQuestion = async (req, res) => {
   try {
-    const { title, difficulty } = req.body;
+    const { title, difficulty, transcript } = req.body;
     let { options } = req.body;
 
     // 1. Check if file exists
@@ -51,24 +49,27 @@ export const addChooseSingleAnswerQuestion = async (req, res) => {
       resource_type: "video" 
     });
 
-    // 6. Transcribe audio using Deepgram
-    const audioBuffer = fs.readFileSync(req.file.path);
-    const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
-      smart_format: true,
-      model: "nova-2",
-      language: "en-US"
-    });
-
-    if (error) throw error;
-
-    const transcript = result.results.channels[0].alternatives[0].transcript;
+    // 6. Transcribe audio (Manual or Deepgram)
+    let finalTranscript = transcript;
+    if (!finalTranscript) {
+       // Fallback to Deepgram if not provided manually
+       const audioBuffer = fs.readFileSync(req.file.path);
+       const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
+        smart_format: true,
+        model: "nova-2",
+        language: "en-US"
+      });
+      if (!error) {
+        finalTranscript = result.results.channels[0].alternatives[0].transcript;
+      }
+    }
 
     // 7. Save question to Database
     const question = await ChooseSingleAnswerQuestion.create({
       title: title || "Untitled Question",
       audioUrl: audio.secure_url,
       cloudinaryId: audio.public_id,
-      transcript: transcript,
+      transcript: finalTranscript,
       options: options.map(o => ({
         text: o.text,
         isCorrect: String(o.isCorrect) === "true" // Ensure it's a real boolean
@@ -317,7 +318,7 @@ export const updateChooseSingleAnswerQuestion = async (req, res) => {
       return res.status(404).json({ success: false, message: "Question not found" });
     }
 
-    const { title, difficulty } = req.body;
+    const { title, difficulty, transcript } = req.body;
     let { options } = req.body;
 
     // ---------- 1. PARSE OPTIONS ----------
@@ -367,31 +368,34 @@ export const updateChooseSingleAnswerQuestion = async (req, res) => {
       question.audioUrl = uploaded.secure_url;
       question.cloudinaryId = uploaded.public_id;
 
-      // Transcribe new audio using Deepgram
-      try {
-        const audioBuffer = fs.readFileSync(req.file.path);
-        const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
-          audioBuffer,
-          {
-            smart_format: true,
-            model: "nova-2",
-            language: "en-US",
+      // Transcribe new audio using Deepgram - Only if manual transcript NOT provided
+      if (!transcript) {
+          try {
+            const audioBuffer = fs.readFileSync(req.file.path);
+            const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
+              audioBuffer,
+              {
+                smart_format: true,
+                model: "nova-2",
+                language: "en-US",
+              }
+            );
+
+            if (!error) {
+                 question.transcript = result.results.channels[0].alternatives[0].transcript;
+            }
+          } catch (transcriptionError) {
+            console.error("Transcription Failed:", transcriptionError);
+            // We continue even if transcription fails, or you can throw error
           }
-        );
-
-        if (error) throw error;
-
-        const transcript = result.results.channels[0].alternatives[0].transcript;
-        question.transcript = transcript;
-      } catch (transcriptionError) {
-        console.error("Transcription Failed:", transcriptionError);
-        // We continue even if transcription fails, or you can throw error
       }
+      fs.unlinkSync(req.file.path);
     }
 
     // ---------- 3. FIELD UPDATES ----------
     if (title !== undefined) question.title = title;
     if (difficulty !== undefined) question.difficulty = difficulty;
+    if (transcript) question.transcript = transcript; // Always update if provided
 
     await question.save();
 
@@ -401,6 +405,9 @@ export const updateChooseSingleAnswerQuestion = async (req, res) => {
     });
 
   } catch (error) {
+    if (req.file && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+    }
     console.error("UPDATE CHOOSE SINGLE ANSWER QUESTION ERROR:", error);
     res.status(500).json({
       success: false,
