@@ -16,7 +16,7 @@ const readAloudSchema = new mongoose.Schema(
     },
     difficulty: {
       type: String,
-      enum: ["easy", "medium", "difficult"],
+      enum: ["Easy", "Medium", "Difficult"],
     },
     isPredictive:{
       type: Boolean,
