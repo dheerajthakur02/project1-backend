@@ -1,7 +1,5 @@
 import dns from "dns";
-dns.setServers(['8.8.8.8']);
-
-
+dns.setServers(["8.8.8.8"]);
 
 import express, { json } from "express"; // Restart Trigger v3
 import dotenv from "dotenv";
@@ -9,9 +7,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import connectDB from "./db.js";
 
-
 dotenv.config();
-
 
 //import routes
 import authRoutes from "./routes/auth.route.js";
@@ -77,25 +73,22 @@ import writingRoute from "./routes/mocktest/writingRoute.js";
 import listeningRoute from "./routes/mocktest/listeningRoute.js";
 import RLRoutes from "./routes/mocktest/questionRoutes/rlRoutes.js";
 import readingRoute from "./routes/mocktest/readingRoute.js";
-import RSRoutes from "./routes/mocktest/questionRoutes/rsRoutes.js"
-import DIRoutes from "./routes/mocktest/questionRoutes/diRoutes.js"
-import ReTellRoutes from "./routes/mocktest/questionRoutes/reTellRoutes.js"
-import sstGroupRoutes from "./routes/mocktest/questionRoutes/sstGroupRoutes.js"
-import hiwRoutes from "./routes/mocktest/questionRoutes/hiwRoutes.js"
-import sgdRoutes from "./routes/mocktest/questionRoutes/sgdRoutes.js"
-import weRoutes from "./routes/mocktest/questionRoutes/weRoutes.js"
-import wfdRoutes from "./routes/mocktest/questionRoutes/wfdRoutes.js"
-import swtRoutes from "./routes/mocktest/questionRoutes/swtRoutes.js"
-import fibRoutes from "./routes/mocktest/questionRoutes/fibRoutes.js"
-import fibdRoutes from "./routes/mocktest/questionRoutes/fibd&dRoutes.js"
-import roRoutes from "./routes/mocktest/questionRoutes/roRoutes.js"
-import rtsRoutes from "./routes/mocktest/questionRoutes/rtsRoutes.js"
- import fiblRoutes from "./routes/mocktest/questionRoutes/fiblRoutes.js"
+import RSRoutes from "./routes/mocktest/questionRoutes/rsRoutes.js";
+import DIRoutes from "./routes/mocktest/questionRoutes/diRoutes.js";
+import ReTellRoutes from "./routes/mocktest/questionRoutes/reTellRoutes.js";
+import sstGroupRoutes from "./routes/mocktest/questionRoutes/sstGroupRoutes.js";
+import hiwRoutes from "./routes/mocktest/questionRoutes/hiwRoutes.js";
+import sgdRoutes from "./routes/mocktest/questionRoutes/sgdRoutes.js";
+import weRoutes from "./routes/mocktest/questionRoutes/weRoutes.js";
+import wfdRoutes from "./routes/mocktest/questionRoutes/wfdRoutes.js";
+import swtRoutes from "./routes/mocktest/questionRoutes/swtRoutes.js";
+import fibRoutes from "./routes/mocktest/questionRoutes/fibRoutes.js";
+import fibdRoutes from "./routes/mocktest/questionRoutes/fibd&dRoutes.js";
+import roRoutes from "./routes/mocktest/questionRoutes/roRoutes.js";
+import rtsRoutes from "./routes/mocktest/questionRoutes/rtsRoutes.js";
+import fiblRoutes from "./routes/mocktest/questionRoutes/fiblRoutes.js";
 
-
-
-
- app.use("/api/question/fibl", fiblRoutes);
+app.use("/api/question/fibl", fiblRoutes);
 app.use("/api/question/rts", rtsRoutes);
 app.use("/api/question/ro", roRoutes);
 app.use("/api/question/fibd", fibdRoutes);
@@ -104,12 +97,12 @@ app.use("/api/question/swt", swtRoutes);
 app.use("/api/question/wfd", wfdRoutes);
 app.use("/api/question/we", weRoutes);
 app.use("/api/question/ra", RLRoutes);
-app.use("/api/question/di", DIRoutes)
-app.use("/api/question/rs", RSRoutes)
-app.use("/api/question/rl", ReTellRoutes)
-app.use("/api/question/sst", sstGroupRoutes)
-app.use("/api/question/sgd",sgdRoutes)
-app.use("/api/question/hiw", hiwRoutes)
+app.use("/api/question/di", DIRoutes);
+app.use("/api/question/rs", RSRoutes);
+app.use("/api/question/rl", ReTellRoutes);
+app.use("/api/question/sst", sstGroupRoutes);
+app.use("/api/question/sgd", sgdRoutes);
+app.use("/api/question/hiw", hiwRoutes);
 app.use("/api/question/reading", readingRoute);
 app.use("/api/question/speaking", speakingRoute);
 app.use("/api/question/writing", writingRoute);
@@ -117,7 +110,6 @@ app.use("/api/question/listening", listeningRoute);
 
 import fullMockTestRoutes from "./routes/mocktest/fullMockTestRoutes.js";
 app.use("/api/mocktest/full", fullMockTestRoutes);
-
 
 app.use("/api/hiw", HIWRoutes);
 app.use("/api/select-missing-word", selectMissingWordRoute);
