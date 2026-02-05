@@ -27,7 +27,8 @@ export const createQuestion = async (req, res) => {
             prepareTime: req.body.prepareTime || 35,
             answerTime: req.body.answerTime || 40,
             keywords: parsedKeywords,
-            modelAnswer: req.body.modelAnswer || ""
+            modelAnswer: req.body.modelAnswer || "",
+            isPredictive: req.body.isPredictive
         });
 
         res.status(201).json({ success: true, data: newQuestion });
@@ -299,15 +300,16 @@ export const updateQuestion = async (req, res) => {
     const difficulty = req.body?.difficulty;
     const keywords = req.body?.keywords;
     const modelAnswer = req.body?.modelAnswer;
+    const isPredictive = req.body?.isPredictive;
   
 
 
     // ✅ If new image uploaded
     if (req.file) {
       // Delete old image from Cloudinary
-    //   if (question.cloudinaryId) {
-    //     await cloudinary.uploader.destroy(question.cloudinaryId);
-    //   }
+      if (question.cloudinaryId) {
+        await cloudinary.uploader.destroy(question.cloudinaryId);
+      }
 
       // Upload new image
       const uploaded = await cloudinary.uploader.upload(req.file.path, {
@@ -326,6 +328,7 @@ export const updateQuestion = async (req, res) => {
     if (difficulty !== undefined) question.difficulty = difficulty;
     if (keywords !== undefined) question.keywords = keywords;
     if (modelAnswer !== undefined) question.modelAnswer = modelAnswer;
+    if(isPredictive !== undefined) question.isPredictive = isPredictive;
 
     await question.save();
 

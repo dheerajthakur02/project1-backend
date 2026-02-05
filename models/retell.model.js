@@ -36,6 +36,10 @@ const RetellLectureQuestionSchema = new mongoose.Schema(
     keywords: [String], // used for content scoring
     modelAnswer: {
       type: String // ideal retell summary
+    },
+    isPredictive:{
+      type: Boolean,
+      default: false
     }
   },
   { timestamps: true }

@@ -13,6 +13,10 @@ const ImageQuestionSchema = new mongoose.Schema(
       enum: ['Easy', 'Medium', 'Hard'],
       default: 'Medium'
     },
+    isPredictive:{
+      type: Boolean,
+      default: false
+    },
     keywords: [String], // Used for AI content matching
     modelAnswer: { type: String } // Ideal description
   },

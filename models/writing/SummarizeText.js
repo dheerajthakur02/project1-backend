@@ -27,6 +27,10 @@ const summarizeTextQuestionSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    isPredictive:{
+      type: Boolean,
+      default: false
+    }
   },
   { timestamps: true }
 );
