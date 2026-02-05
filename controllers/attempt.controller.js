@@ -205,7 +205,6 @@ export const getAttempts = async (req, res) => {
   }
 };
 
-import User from "../models/user.model.js";
 
 export const getAttemptsforCommunity = async (req, res) => {
   try {
@@ -220,11 +219,10 @@ export const getAttemptsforCommunity = async (req, res) => {
 
     let pId;
 
-    // If paragraphId is a valid ObjectId, use it directly
+    // Handle ObjectId or custom id
     if (mongoose.Types.ObjectId.isValid(paragraphId)) {
       pId = new mongoose.Types.ObjectId(paragraphId);
     } else {
-      // Otherwise, find paragraph by custom id
       const paragraph = await ReadAloud.findOne({ id: paragraphId });
       if (!paragraph) {
         return res.status(404).json({
@@ -232,17 +230,23 @@ export const getAttemptsforCommunity = async (req, res) => {
           message: "Paragraph not found",
         });
       }
-      pId = paragraph._id; // already an ObjectId, no need to wrap again
+      pId = paragraph._id;
     }
 
-    const attempts = await Attempt.aggregate([
+    const data = await Attempt.aggregate([
       /* ---------------- MATCH PARAGRAPH ---------------- */
-      { $match: { paragraphId: pId } },
+      {
+        $match: {
+          paragraphId: pId,
+        },
+      },
 
       /* ---------------- SORT LATEST FIRST ---------------- */
-      { $sort: { date: -1 } },
+      {
+        $sort: { date: -1 },
+      },
 
-      /* ---------------- GROUP BY USER → COLLECT ALL ATTEMPTS ---------------- */
+      /* ---------------- GROUP BY USER ---------------- */
       {
         $group: {
           _id: "$userId",
@@ -250,11 +254,12 @@ export const getAttemptsforCommunity = async (req, res) => {
         },
       },
 
-      /* ---------------- KEEP UP TO 15 ATTEMPTS PER USER ---------------- */
+      /* ---------------- LIMIT TO 15 ATTEMPTS ---------------- */
       {
         $project: {
           userId: "$_id",
           attempts: { $slice: ["$attempts", 15] },
+          _id: 0,
         },
       },
 
@@ -268,21 +273,36 @@ export const getAttemptsforCommunity = async (req, res) => {
         },
       },
       {
-        $unwind: { path: "$user", preserveNullAndEmptyArrays: true },
+        $unwind: {
+          path: "$user",
+          preserveNullAndEmptyArrays: true,
+        },
       },
 
-      /* ---------------- FINAL RESPONSE ---------------- */
+      /* ---------------- OPTIONAL: SORT USERS BY LATEST ATTEMPT ---------------- */
+      {
+        $sort: {
+          "attempts.0.date": -1,
+        },
+      },
+
+      /* ---------------- FINAL SHAPE ---------------- */
       {
         $project: {
           userId: 1,
           "user.name": 1,
           "user.email": 1,
+          "user.avatar": 1,
           attempts: {
-            score: 1,
-            content: 1,
             transcript: 1,
+            score: 1,
+            fluency: 1,
+            content: 1,
+            pronunciation: 1,
+            analysis: 1,
+            aiFeedback: 1,
+            wordAnalysis: 1,
             date: 1,
-            studentAudio: 1,
           },
         },
       },
@@ -290,8 +310,8 @@ export const getAttemptsforCommunity = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      count: attempts.length,
-      data: attempts,
+      count: data.length,
+      data,
     });
   } catch (error) {
     console.error("Community Attempts Error:", error);
