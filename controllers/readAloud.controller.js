@@ -1,4 +1,59 @@
 import ReadAloud from "../models/readAloud.model.js";
+import mongoose from "mongoose";
+
+export const getReadAloudQuestionsWithAttempts = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) return res.status(400).json({ success: false, message: "UserId is required" });
+
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    const questions = await ReadAloud.aggregate([
+      // Lookup attempts in speakingresults
+      {
+        $lookup: {
+          from: "speakingresults",
+          let: { qId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$user", userObjectId] },
+                    { $in: ["$$qId", "$scores.questionId"] }
+                  ]
+                }
+              }
+            },
+            { $count: "count" }
+          ],
+          as: "attemptData"
+        }
+      },
+      // Add fields
+      {
+        $addFields: {
+           attemptCount: { $ifNull: [{ $arrayElemAt: ["$attemptData.count", 0] }, 0] },
+           isAttempted: { $gt: [{ $ifNull: [{ $arrayElemAt: ["$attemptData.count", 0] }, 0] }, 0] },
+           status: {
+             $cond: {
+               if: { $gt: [{ $ifNull: [{ $arrayElemAt: ["$attemptData.count", 0] }, 0] }, 0] },
+               then: "Practiced",
+               else: "Not Practiced"
+             }
+           }
+        }
+      },
+      { $project: { attemptData: 0 } },
+      { $sort: { createdAt: -1 } }
+    ]);
+
+    res.status(200).json({ success: true, data: questions });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 export const createReadAloud = async (req, res) => {
   try {

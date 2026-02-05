@@ -5,6 +5,7 @@ import {
   getReadAloudById,
   updateReadAloud,
   deleteReadAloud,
+  getReadAloudQuestionsWithAttempts
 } from "../controllers/readAloud.controller.js";
 import { submitRL } from "../controllers/mocktest/questionTests/rlControllers.js";
 import { authorize } from "../middlewares/authMiddleware.js";
@@ -20,5 +21,6 @@ router.get("/", getAllReadAloud);
 router.get("/:id", getReadAloudById);
 router.put("/:id", updateReadAloud);
 router.delete("/:id", deleteReadAloud);
+router.get("/questions/:userId", getReadAloudQuestionsWithAttempts);
 
 export default router;
