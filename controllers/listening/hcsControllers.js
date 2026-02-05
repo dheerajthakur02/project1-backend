@@ -12,7 +12,7 @@ const deepgram = createClient(process.env.API_KEY);
 // ---------- CREATE QUESTION ----------
 export const addHighlightSummaryQuestion = async (req, res) => {
   try {
-    let { summaries, difficulty, title } = req.body;
+    let { summaries, difficulty, title, transcript } = req.body;
 
     // 1. Check for Audio
     if (!req.file) {
@@ -43,23 +43,27 @@ export const addHighlightSummaryQuestion = async (req, res) => {
     // 4. Upload to Cloudinary
     const audio = await cloudinary.uploader.upload(req.file.path, { resource_type: "video" });
 
-    // 5. Transcribe
-    const audioBuffer = fs.readFileSync(req.file.path);
-    const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
-      smart_format: true,
-      model: "nova-2",
-      language: "en-US"
-    });
-
-    if (error) throw error;
-    const transcript = result.results.channels[0].alternatives[0].transcript;
+    // 5. Transcribe (Manual or Deepgram)
+    let finalTranscript = transcript;
+    if (!finalTranscript) {
+       // Fallback to Deepgram if not provided manually
+       const audioBuffer = fs.readFileSync(req.file.path);
+       const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
+        smart_format: true,
+        model: "nova-2",
+        language: "en-US"
+      });
+      if (!error) {
+        finalTranscript = result.results.channels[0].alternatives[0].transcript;
+      }
+    }
 
     // 6. Save to DB
     const question = await HighlightSummaryQuestion.create({
       title: title || "Untitled Question",
       audioUrl: audio.secure_url,
       cloudinaryId: audio.public_id,
-      transcript,
+      transcript: finalTranscript,
       summaries: summaries.map(s => ({
         text: s.text,
         isCorrect: String(s.isCorrect) === "true" // Handle string booleans from FormData
@@ -82,7 +86,7 @@ export const addHighlightSummaryQuestion = async (req, res) => {
 export const updateQuestion = async (req, res) => {
   try {
     const { id } = req.params;
-    let { title, difficulty, summaries } = req.body;
+    let { title, difficulty, summaries, transcript } = req.body;
 
     const question = await HighlightSummaryQuestion.findById(id);
     if (!question) {
@@ -111,15 +115,17 @@ export const updateQuestion = async (req, res) => {
       question.audioUrl = uploaded.secure_url;
       question.cloudinaryId = uploaded.public_id;
 
-      // Update Transcript
-      const audioBuffer = fs.readFileSync(req.file.path);
-      const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
-        smart_format: true,
-        model: "nova-2",
-        language: "en-US"
-      });
-      if (!error) {
-        question.transcript = result.results.channels[0].alternatives[0].transcript;
+      // Update Transcript - Only if manual transcript NOT provided
+      if (!transcript) {
+          const audioBuffer = fs.readFileSync(req.file.path);
+          const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
+            smart_format: true,
+            model: "nova-2",
+            language: "en-US"
+          });
+          if (!error) {
+            question.transcript = result.results.channels[0].alternatives[0].transcript;
+          }
       }
       fs.unlinkSync(req.file.path);
     }
@@ -127,6 +133,7 @@ export const updateQuestion = async (req, res) => {
     // 3. Update Text Fields
     if (title) question.title = title;
     if (difficulty) question.difficulty = difficulty;
+    if (transcript) question.transcript = transcript; // Always update if provided
 
     // 4. Update Summaries
     if (summaries) {
