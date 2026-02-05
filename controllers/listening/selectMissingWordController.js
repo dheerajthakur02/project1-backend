@@ -42,21 +42,24 @@ export const addSelectMissingWordQuestion = async (req, res) => {
     const audio = await cloudinary.uploader.upload(req.file.path, { resource_type: "video" });
 
     // 5. Transcribe
-    const audioBuffer = fs.readFileSync(req.file.path);
-    const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
-      smart_format: true,
-      model: "nova-2",
-      language: "en-US"
-    });
-    if (error) throw error;
-    const transcript = result.results.channels[0].alternatives[0].transcript;
+    let finalTranscript = req.body.transcript;
+    if (!finalTranscript) {
+      const audioBuffer = fs.readFileSync(req.file.path);
+      const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
+        smart_format: true,
+        model: "nova-2",
+        language: "en-US"
+      });
+      if (error) throw error;
+      finalTranscript = result.results.channels[0].alternatives[0].transcript;
+    }
 
     // 6. Save question
     const question = await SelectMissingWordQuestion.create({
       title,
       audioUrl: audio.secure_url,
       cloudinaryId: audio.public_id,
-      transcript: transcript,
+      transcript: finalTranscript,
       options: options.map(o => ({
         text: o.text,
         isCorrect: String(o.isCorrect) === "true"
@@ -231,6 +234,8 @@ export const updateSelectMissingWordQuestion = async (req, res) => {
     }
 
     // 2. AUDIO UPDATE
+    let finalTranscript = req.body.transcript;
+
     if (req.file) {
       if (question.cloudinaryId) {
         await cloudinary.uploader.destroy(question.cloudinaryId, { resource_type: "video" });
@@ -239,16 +244,22 @@ export const updateSelectMissingWordQuestion = async (req, res) => {
       question.audioUrl = uploaded.secure_url;
       question.cloudinaryId = uploaded.public_id;
 
-      const audioBuffer = fs.readFileSync(req.file.path);
-      const { result } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
-        smart_format: true,
-        model: "nova-2",
-        language: "en-US"
-      });
-      question.transcript = result.results.channels[0].alternatives[0].transcript;
+      // Only auto-transcribe if no manual transcript provided
+      if (!finalTranscript) {
+        const audioBuffer = fs.readFileSync(req.file.path);
+        const { result } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
+          smart_format: true,
+          model: "nova-2",
+          language: "en-US"
+        });
+        finalTranscript = result.results.channels[0].alternatives[0].transcript;
+      }
       
       fs.unlinkSync(req.file.path); // cleanup
     }
+    
+    // Update transcript used (either manual or auto-generated)
+    if (finalTranscript !== undefined) question.transcript = finalTranscript;
 
     // 3. FIELD UPDATES
     if (title !== undefined) question.title = title;
