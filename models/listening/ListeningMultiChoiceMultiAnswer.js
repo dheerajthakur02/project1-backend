@@ -4,7 +4,7 @@ const ListeningMultiChoiceMultiAnswerSchema = new mongoose.Schema({
   title: { type: String, required: true },
   audioUrl: { type: String, required: true },
   cloudinaryId: { type: String },
-  transcript: { type: String }, // Optional
+  transcript: { type: String, required: true },
   question: { type: String, required: true },
   options: [{ type: String, required: true }],
   correctOptions: [{ type: String, required: true }],
