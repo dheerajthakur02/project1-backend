@@ -125,7 +125,14 @@ export const getListeningFIBQuestionsWithAttempts = async (req, res) => {
 // Community attempts for Listening FIB (max 15 latest per user)
 export const getListeningFIBCommunityAttempts = async (req, res) => {
   try {
-    const attempts = await ListeningFIBAttempt.aggregate([
+    const { questionId }= req.params
+     const attempts = await ListeningFIBAttempt.aggregate([
+        {
+                    $match: {
+                      questionId: new mongoose.Types.ObjectId(questionId),
+                    },
+                  },
+            
       /* 1️⃣ Latest first */
       { $sort: { createdAt: -1 } },
 
@@ -188,7 +195,12 @@ export const getListeningFIBCommunityAttempts = async (req, res) => {
           "question.title": 1,
           "question.audioUrl": 1
         }
-      }
+      },
+       {
+        $sort: {
+          "attempts.0.createdAt": -1,
+        },
+      },
     ]);
 
     res.status(200).json({

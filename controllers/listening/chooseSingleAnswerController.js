@@ -165,45 +165,95 @@ export const addChooseSingleAnswerQuestion = async (req, res) => {
   }
 };
 
-export const getChooseSingleAnswerCommunityAttempts = async (req, res) => {
+
+
+export const getCommunityAttempts = async (req, res) => {
   try {
-    const attempts = await ChooseSingleAnswerAttempt.aggregate([
-      { $sort: { createdAt: -1 } },
-      { $group: { _id: "$userId", attempts: { $push: "$$ROOT" } } },
-      { $project: { attempts: { $slice: ["$attempts", 15] } } },
-      { $unwind: "$attempts" },
-      { $replaceRoot: { newRoot: "$attempts" } },
+    const { questionId } = req.params;
 
-      { $lookup: { from: "users", localField: "userId", foreignField: "_id", as: "user" } },
-      { $unwind: "$user" },
+    if (!questionId) {
+      return res.status(400).json({
+        success: false,
+        message: "questionId is required",
+      });
+    }
 
+    const data = await ChooseSingleAnswerAttempt.aggregate([
+      // 1️⃣ Match question
       {
-        $lookup: {
-          from: ChooseSingleAnswerQuestion.collection.name,
-          localField: "questionId",
-          foreignField: "_id",
-          as: "question"
-        }
+        $match: {
+          questionId: new mongoose.Types.ObjectId(questionId),
+        },
       },
-      { $unwind: "$question" },
 
+      // 2️⃣ Latest attempts first
+      {
+        $sort: { createdAt: -1 },
+      },
+
+      // 3️⃣ Group by user
+      {
+        $group: {
+          _id: "$userId",
+          attempts: {
+            $push: {
+              _id: "$_id",
+              selectedOptionIndex: "$selectedOptionIndex",
+              isCorrect: "$isCorrect",
+              timeTaken: "$timeTaken",
+              createdAt: "$createdAt",
+            },
+          },
+        },
+      },
+
+      // 4️⃣ Limit attempts per user
       {
         $project: {
-          score: 1,
-          maxScore: 1,
-          selectedOption: 1,
-          createdAt: 1,
-          "user.name": 1,
-          "question.title": 1
-        }
-      }
+          userId: "$_id",
+          attempts: { $slice: ["$attempts", 15] },
+          _id: 0,
+        },
+      },
+
+      // 5️⃣ Populate user
+      {
+        $lookup: {
+          from: "users", // ⚠️ collection name, NOT model name
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+
+      // 6️⃣ Convert user array → object
+      {
+        $unwind: "$user",
+      },
+
+      // 7️⃣ Sort users by latest attempt
+      {
+        $sort: {
+          "attempts.0.createdAt": -1,
+        },
+      },
     ]);
 
-    res.status(200).json({ success: true, data: attempts });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data,
+    });
+  } catch (error) {
+    console.error("COMMUNITY ATTEMPTS ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
+
+
 
 // ---------- DELETE QUESTION ----------
 export const deleteChooseSingleAnswerQuestion = async (req, res) => {

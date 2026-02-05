@@ -16,7 +16,7 @@ const router = express.Router();
 router.post("/add", upload.single("audio"), addListeningFIBQuestion);
 router.get("/", getListeningFIBQuestionsWithAttempts);
 router.get("/questions/:userId", getListeningFIBQuestionsWithAttempts);
-router.get("/community", getListeningFIBCommunityAttempts);
+router.get("/:questionId/community", getListeningFIBCommunityAttempts);
 router.put("/:id", updateListeningFIBQuestion)
 router.delete("/:id", deleteQuestion)
 

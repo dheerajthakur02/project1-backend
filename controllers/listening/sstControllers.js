@@ -265,55 +265,62 @@ export const deleteQuestion = async (req, res) => {
 };
 
 export const getCommunityAttempts = async (req, res) => {
+  const { questionId } = req.params;
+
   try {
     const attempts = await SSTAttempt.aggregate([
-      // 1️⃣ Sort latest attempts first
+      // 1️⃣ Match question
+      {
+        $match: {
+          questionId: new mongoose.Types.ObjectId(questionId),
+        },
+      },
+
+      // 2️⃣ Sort before grouping (for correct slicing)
       { $sort: { createdAt: -1 } },
 
-      // 2️⃣ Group attempts per user
+      // 3️⃣ Group per user
       {
         $group: {
           _id: "$userId",
-          attempts: { $push: "$$ROOT" }
-        }
+          attempts: { $push: "$$ROOT" },
+        },
       },
 
-      // 3️⃣ Limit each user to max 15 attempts
+      // 4️⃣ Limit to 15 attempts per user
       {
         $project: {
-          attempts: { $slice: ["$attempts", 15] }
-        }
+          attempts: { $slice: ["$attempts", 15] },
+        },
       },
 
-      // 4️⃣ Flatten attempts array
+      // 5️⃣ Flatten attempts
       { $unwind: "$attempts" },
-
-      // 5️⃣ Replace root with attempt object
       { $replaceRoot: { newRoot: "$attempts" } },
 
-      // 6️⃣ Populate user details
+      // 6️⃣ Populate user
       {
         $lookup: {
           from: "users",
           localField: "userId",
           foreignField: "_id",
-          as: "user"
-        }
+          as: "user",
+        },
       },
       { $unwind: "$user" },
 
-      // 7️⃣ Populate question details
+      // 7️⃣ Populate question
       {
         $lookup: {
           from: "sstquestions",
           localField: "questionId",
           foreignField: "_id",
-          as: "question"
-        }
+          as: "question",
+        },
       },
       { $unwind: "$question" },
 
-      // 8️⃣ Final shape
+      // 8️⃣ Shape response
       {
         $project: {
           userId: 1,
@@ -326,24 +333,30 @@ export const getCommunityAttempts = async (req, res) => {
           createdAt: 1,
           "user.name": 1,
           "user.avatar": 1,
-          "question.title": 1
-        }
-      }
+          "question.title": 1,
+        },
+      },
+
+      // ✅ 9️⃣ FINAL SORT (THIS WAS MISSING)
+      {
+        $sort: { createdAt: -1 },
+      },
     ]);
 
     res.status(200).json({
       success: true,
       count: attempts.length,
-      data: attempts
+      data: attempts,
     });
   } catch (error) {
     console.error("GET COMMUNITY ATTEMPTS ERROR:", error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
+
 
 
 

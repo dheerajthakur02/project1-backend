@@ -9,7 +9,7 @@ import { checkPracticeLimit } from '../../middlewares/practiceLimitMiddleware.js
 
 router.post('/add', upload.single('audio'), addSelectMissingWordQuestion);
 router.get("/", getSelectMissingWordWithAttempts);
-router.get("/community", getSelectMissingWordCommunityAttempts);
+router.get("/:questionId/community", getSelectMissingWordCommunityAttempts);
 router.get('/:userId', getSelectMissingWordWithAttempts);
 router.put('/:id', upload.single('audio'), updateSelectMissingWordQuestion); // Partial update
 router.delete('/:id', deleteQuestion)
