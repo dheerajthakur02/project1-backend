@@ -155,15 +155,20 @@ export const submitEssayAttempt = async (req, res) => {
     else if ((wordCount >= 120 && wordCount < 200) || (wordCount > 300 && wordCount <= 380)) form = 1;
     else form = 0;
 
-    // B. CONTENT (Max 2) - Updated to be based on Word Count as per user request
-    // Logic: 200-300 -> 2, 301-380 -> 1, 0-119 -> 0, >380 -> 0. (Assuming 120-199 -> 1)
+    // B. CONTENT (Max 2) - Keyword Matching
     let content = 0;
-    if (wordCount >= 200 && wordCount <= 300) {
-      content = 2;
-    } else if ((wordCount >= 120 && wordCount < 200) || (wordCount > 300 && wordCount <= 380)) {
-      content = 1;
+    const lowerEssay = essayText.toLowerCase();
+    
+    // Check keyword matches if available
+    if (keywords && keywords.length > 0) {
+        const matches = keywords.filter(k => lowerEssay.includes(k.toLowerCase())).length;
+        if (matches >= 4) content = 2;
+        else if (matches >= 2) content = 1;
+        else content = 0;
     } else {
-      content = 0;
+        // Fallback if no keywords defined: Give benefit of doubt if length is sufficient
+        if (wordCount >= 200) content = 2;
+        else if (wordCount >= 100) content = 1;
     }
 
     // C. DEVELOPMENT (Max 2) - Formerly 'Structure'
@@ -173,7 +178,7 @@ export const submitEssayAttempt = async (req, res) => {
     const paragraphs = essayText.split('\n').filter(p => p.trim().length > 0).length;
     
     // Original Logic preserved for "issues" tracking, but score is overridden
-    let structure = content; // User request: "marks of general and structure will be always same as the marks of content"
+    let structure = form; // User request: "form is calculated as Development"
 
     // D. VOCABULARY (Max 2) - Lexical Range (Unique words ratio)
     const uniqueWords = new Set(words.map(w => w.toLowerCase())).size;
@@ -204,8 +209,7 @@ export const submitEssayAttempt = async (req, res) => {
     }
 
     // G. GENERAL LINGUISTIC RANGE (Max 2) - Formerly 'General'
-    // Updated to be same as CONTENT as per user request
-    let general = content; // User request: marks of general... same as content
+    let general = form; // User request: "form is calculated as... General Linguistic Range"
 
 
     /* ---------- FINAL TOTALS ---------- */
