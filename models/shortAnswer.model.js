@@ -13,6 +13,10 @@ const shortAnswerQuestionSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    transcript: {
+      type: String,
+      required: true,
+    },
     cloudinaryId: {
       type: String,
     },
