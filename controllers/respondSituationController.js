@@ -19,7 +19,7 @@ const deepgram = createClient(process.env.API_KEY);
 ================================ */
 export const addRespondSituationQuestion = async (req, res) => {
   try {
-    const { title, prepareTime, answerTime, difficulty, answer, keywords, modelAnswer } = req.body;
+    const { title, prepareTime, answerTime, difficulty, answer, keywords, modelAnswer, isPrediction } = req.body;
 
     if (!req.file) {
       return res.status(400).json({ success: false, message: "Audio file is required" });
@@ -50,7 +50,7 @@ export const addRespondSituationQuestion = async (req, res) => {
       difficulty: difficulty || "Medium",
       answer,
       keywords: keywords ? JSON.parse(keywords) : [],
-      modelAnswer: modelAnswer || ""
+      modelAnswer: modelAnswer || "",
     });
 
     res.status(201).json({ success: true, data: question });
@@ -71,7 +71,7 @@ export const updateRespondSituationQuestion = async (req, res) => {
     const question = await RespondSituationQuestion.findById(id);
     if (!question) return res.status(404).json({ message: "Question not found" });
 
-    const { title, prepareTime, answerTime, difficulty, answer, keywords, modelAnswer } = req.body;
+    const { title, prepareTime, answerTime, difficulty, answer, keywords, modelAnswer, isPrediction } = req.body;
 
     // AUDIO UPDATE
     if (req.file) {

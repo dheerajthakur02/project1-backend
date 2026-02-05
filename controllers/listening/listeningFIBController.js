@@ -27,7 +27,9 @@ export const addListeningFIBQuestion = async (req, res) => {
       cloudinaryId: audio.public_id,
       transcript,
       correctAnswers: parsedCorrectAnswers,
-      difficulty: difficulty || "Medium"
+
+      difficulty: difficulty || "Medium",
+      isPrediction: req.body.isPrediction || false
     });
 
     res.status(201).json({ success: true, question });
@@ -315,6 +317,7 @@ export const updateListeningFIBQuestion = async (req, res) => {
     if (transcript) question.transcript = transcript;
     if (difficulty) question.difficulty = difficulty;
     if (correctAnswers) question.correctAnswers = correctAnswers;
+    if (req.body.isPrediction !== undefined) question.isPrediction = req.body.isPrediction;
 
     await question.save();
     res.status(200).json({ success: true, question });

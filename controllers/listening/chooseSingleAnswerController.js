@@ -74,7 +74,9 @@ export const addChooseSingleAnswerQuestion = async (req, res) => {
         text: o.text,
         isCorrect: String(o.isCorrect) === "true" // Ensure it's a real boolean
       })),
-      difficulty: difficulty || "Medium"
+
+      difficulty: difficulty || "Medium",
+      isPrediction: req.body.isPrediction || false
     });
 
     // 8. IMPORTANT: Delete the temporary file from your local server
@@ -395,6 +397,7 @@ export const updateChooseSingleAnswerQuestion = async (req, res) => {
     // ---------- 3. FIELD UPDATES ----------
     if (title !== undefined) question.title = title;
     if (difficulty !== undefined) question.difficulty = difficulty;
+    if (req.body.isPrediction !== undefined) question.isPrediction = req.body.isPrediction;
     if (transcript) question.transcript = transcript; // Always update if provided
 
     await question.save();

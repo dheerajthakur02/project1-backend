@@ -33,7 +33,7 @@ const summarizeGroupQuestionSchema = new mongoose.Schema(
       type: Number, // seconds
       required: true,
     },
-    isPredictive:{
+    isPrediction: {
       type: Boolean,
       default: false
     }

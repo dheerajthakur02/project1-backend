@@ -16,6 +16,7 @@ const HIWQuestionSchema = new mongoose.Schema({
     }
   ],
   difficulty: { type: String, enum: ["Easy", "Medium", "Hard"] },
+  isPrediction: { type: Boolean, default: false },
 });
 
 // models/HIWAttempt.js

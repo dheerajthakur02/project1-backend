@@ -37,7 +37,7 @@ const RetellLectureQuestionSchema = new mongoose.Schema(
     modelAnswer: {
       type: String // ideal retell summary
     },
-    isPredictive:{
+    isPrediction: {
       type: Boolean,
       default: false
     }

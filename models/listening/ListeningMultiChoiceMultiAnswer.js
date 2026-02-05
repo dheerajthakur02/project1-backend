@@ -9,6 +9,7 @@ const ListeningMultiChoiceMultiAnswerSchema = new mongoose.Schema({
   options: [{ type: String, required: true }],
   correctOptions: [{ type: String, required: true }],
   difficulty: { type: String, enum: ["Easy", "Medium", "Hard"], default: "Medium" },
+  isPrediction: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
 

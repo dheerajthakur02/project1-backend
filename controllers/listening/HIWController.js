@@ -45,6 +45,7 @@ export const createHIWQuestion = async (req, res) => {
       cloudinaryId: audio?.public_id,
       transcript: finalTranscript,
       difficulty,
+      isPrediction: req.body.isPrediction || false
     });
 
     res.status(201).json({
@@ -113,6 +114,7 @@ export const updateHIWQuestion = async (req, res) => {
     }
     
     if (finalTranscript !== undefined) updateData.transcript = finalTranscript;
+    if (req.body.isPrediction !== undefined) updateData.isPrediction = req.body.isPrediction;
 
     // Update the document
     const updatedQuestion = await HIWQuestion.findByIdAndUpdate(

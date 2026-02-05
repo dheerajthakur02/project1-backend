@@ -33,7 +33,9 @@ export const addQuestion = async (req, res) => {
       question,
       options: parsedOptions,
       correctOptions: parsedCorrectOptions,
-      difficulty: difficulty || "Medium"
+
+      difficulty: difficulty || "Medium",
+      isPrediction: req.body.isPrediction || false
     });
 
     res.status(201).json({
@@ -282,6 +284,7 @@ export const updateQuestion = async (req, res) => {
     if (question !== undefined) updateData.question = question;
     if (difficulty !== undefined) updateData.difficulty = difficulty;
     if (transcript !== undefined) updateData.transcript = transcript;
+    if (req.body.isPrediction !== undefined) updateData.isPrediction = req.body.isPrediction;
 
     // 2. Parse Options (FormData sends arrays as stringified JSON)
     if (options) {

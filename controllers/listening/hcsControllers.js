@@ -68,7 +68,9 @@ export const addHighlightSummaryQuestion = async (req, res) => {
         text: s.text,
         isCorrect: String(s.isCorrect) === "true" // Handle string booleans from FormData
       })),
-      difficulty: difficulty || "Medium"
+
+      difficulty: difficulty || "Medium",
+      isPrediction: req.body.isPrediction || false
     });
 
     // 7. Cleanup temp local file
@@ -133,7 +135,8 @@ export const updateQuestion = async (req, res) => {
     // 3. Update Text Fields
     if (title) question.title = title;
     if (difficulty) question.difficulty = difficulty;
-    if (transcript) question.transcript = transcript; // Always update if provided
+    if (transcript) question.transcript = transcript;
+    if (req.body.isPrediction !== undefined) question.isPrediction = req.body.isPrediction; // Always update if provided
 
     // 4. Update Summaries
     if (summaries) {

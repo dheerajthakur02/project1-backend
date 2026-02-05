@@ -64,7 +64,9 @@ export const addSelectMissingWordQuestion = async (req, res) => {
         text: o.text,
         isCorrect: String(o.isCorrect) === "true"
       })),
-      difficulty: difficulty || "Medium"
+
+      difficulty: difficulty || "Medium",
+      isPrediction: req.body.isPrediction || false
     });
 
     // Clean up local temp file
@@ -264,6 +266,7 @@ export const updateSelectMissingWordQuestion = async (req, res) => {
     // 3. FIELD UPDATES
     if (title !== undefined) question.title = title;
     if (difficulty !== undefined) question.difficulty = difficulty;
+    if (req.body.isPrediction !== undefined) question.isPrediction = req.body.isPrediction;
 
     // 4. OPTIONS UPDATE VALIDATION
     if (options) {

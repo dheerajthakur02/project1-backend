@@ -8,7 +8,7 @@ const questionSchema = new mongoose.Schema({
   transcript: String,
   prepareTime: Number,   // seconds
   answerTime: Number,
-  isPredictive:{
+  isPrediction: {
       type: Boolean,
       default: false
     }    // seconds

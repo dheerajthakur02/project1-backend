@@ -63,7 +63,8 @@ export const createQuestion = async (req, res) => {
       answer,
       cloudinaryId: audio.public_id,
       keywords: keywords || [],
-      difficulty: difficulty || "Medium"
+      difficulty: difficulty || "Medium",
+      isPrediction: req.body.isPrediction || false
     });
 
     res.status(201).json({
@@ -243,6 +244,7 @@ export const updateQuestion = async (req, res) => {
     if (difficulty !== undefined) question.difficulty = difficulty;
     if (keywords !== undefined) question.keywords = keywords;
     if (answer !== undefined) question.answer = answer;
+    if (req.body.isPrediction !== undefined) question.isPrediction = req.body.isPrediction;
 
     await question.save();
 

@@ -27,8 +27,8 @@ export const createQuestion = async (req, res) => {
             prepareTime: req.body.prepareTime || 35,
             answerTime: req.body.answerTime || 40,
             keywords: parsedKeywords,
+            keywords: parsedKeywords,
             modelAnswer: req.body.modelAnswer || "",
-            isPredictive: req.body.isPredictive
         });
 
         res.status(201).json({ success: true, data: newQuestion });
@@ -328,7 +328,6 @@ export const updateQuestion = async (req, res) => {
     if (difficulty !== undefined) question.difficulty = difficulty;
     if (keywords !== undefined) question.keywords = keywords;
     if (modelAnswer !== undefined) question.modelAnswer = modelAnswer;
-    if(isPredictive !== undefined) question.isPredictive = isPredictive;
 
     await question.save();
 

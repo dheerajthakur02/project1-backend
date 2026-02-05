@@ -13,7 +13,7 @@ const ImageQuestionSchema = new mongoose.Schema(
       enum: ['Easy', 'Medium', 'Hard'],
       default: 'Medium'
     },
-    isPredictive:{
+    isPrediction: {
       type: Boolean,
       default: false
     },
