@@ -4,7 +4,10 @@ import mongoose from 'mongoose';
 const SSTQuestionSchema = new mongoose.Schema({
     title: String,
     audioUrl: String,
-    transcript: String,
+        transcript: {
+        type: String,
+        required: true,
+    },
     answer: String,
     cloudinaryId: String,
     keywords: [String], // Important for content scoring

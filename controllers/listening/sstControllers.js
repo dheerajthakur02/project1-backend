@@ -32,20 +32,28 @@ export const createQuestion = async (req, res) => {
       resource_type: "video" // audio/video files
     });
 
-    // ---------- AUTO TRANSCRIPTION ----------
-    const audioBuffer = fs.readFileSync(req.file.path);
-    const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
-      audioBuffer,
-      {
-        smart_format: true,
-        model: "nova-2",
-        language: "en-US"
-      }
-    );
-
-    if (error) throw error;
-
-    const transcript = result.results.channels[0].alternatives[0].transcript;
+    // ---------- AUTO TRANSCRIPTION OR MANUAL ----------
+    let transcript = req.body.transcript || "";
+    
+    if (!transcript) {
+        try {
+            const audioBuffer = fs.readFileSync(req.file.path);
+            const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
+              audioBuffer,
+              {
+                smart_format: true,
+                model: "nova-2",
+                language: "en-US"
+              }
+            );
+            if (!error && result?.results?.channels?.[0]?.alternatives?.[0]?.transcript) {
+                transcript = result.results.channels[0].alternatives[0].transcript;
+            }
+        } catch (err) {
+            console.error("Deepgram Transcription Failed:", err);
+            // Non-blocking, we keep transcript empty or manual
+        }
+    }
 
     // ---------- SAVE QUESTION ----------
     const question = await SSTQuestion.create({
@@ -186,20 +194,18 @@ export const updateQuestion = async (req, res) => {
       return res.status(404).json({ message: "Question not found" });
     }
 
-   const title = req.body?.title;
-   const difficulty = req.body?.difficulty;
-   const keywords = req.body?.keywords;
-   const answer = req.body?.answer;
+    const title = req.body?.title;
+    const difficulty = req.body?.difficulty;
+    const keywords = req.body?.keywords;
+    const answer = req.body?.answer;
+    
+    // Check if transcript is explicitly provided in body (even if empty string to clear it, though usually we want to set it)
+    if (req.body.transcript !== undefined) {
+        question.transcript = req.body.transcript;
+    }
 
     // ---------- AUDIO UPDATE ----------
     if (req.file) {
-      // Delete old audio from Cloudinary
-    //   if (question.cloudinaryId) {
-    //     await cloudinary.uploader.destroy(question.cloudinaryId, {
-    //       resource_type: "video",
-    //     });
-    //   }
-
       // Upload new audio
       const uploaded = await cloudinary.uploader.upload(req.file.path, {
         resource_type: "video",
@@ -208,23 +214,28 @@ export const updateQuestion = async (req, res) => {
       question.audioUrl = uploaded.secure_url;
       question.cloudinaryId = uploaded.public_id;
 
-      // Auto transcription using Deepgram
-      const audioBuffer = fs.readFileSync(req.file.path);
-      const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
-        audioBuffer,
-        {
-          smart_format: true,
-          model: "nova-2",
-          language: "en-US",
-        }
-      );
-
-      if (error) throw error;
-
-      const transcript = result.results.channels[0].alternatives[0].transcript;
-      question.transcript = transcript;
-
-
+      // Auto transcription using Deepgram ONLY if transcript wasn't manually provided in this same request
+      // If user provides a transcript AND a file, we assume the transcript content takes precedence (or is the manual edit of the new file)
+      // BUT typically if file is new, we re-transcribe unless user specifically opted out (not implemented). 
+      // For now: if transcript IS NOT in body, we auto-transcribe new file.
+      if (req.body.transcript === undefined) {
+          try {
+              const audioBuffer = fs.readFileSync(req.file.path);
+              const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
+                audioBuffer,
+                {
+                  smart_format: true,
+                  model: "nova-2",
+                  language: "en-US",
+                }
+              );
+              if (!error && result?.results?.channels?.[0]?.alternatives?.[0]?.transcript) {
+                  question.transcript = result.results.channels[0].alternatives[0].transcript;
+              }
+          } catch (err) {
+               console.error("Deepgram Update Transcription Failed:", err);
+          }
+      }
     }
 
     // ---------- FIELD UPDATES ----------
