@@ -25,7 +25,11 @@ const writeEssayQuestionSchema = new mongoose.Schema(
       type: Number, // seconds
       required: true,
     },
-    isPrediction: {
+    modelAnswer: {
+      type: String,
+      required: true,
+    },
+    isPredictive: {
       type: Boolean,
       default: false
     }

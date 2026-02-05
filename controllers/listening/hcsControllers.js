@@ -70,7 +70,7 @@ export const addHighlightSummaryQuestion = async (req, res) => {
       })),
 
       difficulty: difficulty || "Medium",
-      isPrediction: req.body.isPrediction || false
+      isPredictive: req.body.isPredictive || false,
     });
 
     // 7. Cleanup temp local file
@@ -136,7 +136,7 @@ export const updateQuestion = async (req, res) => {
     if (title) question.title = title;
     if (difficulty) question.difficulty = difficulty;
     if (transcript) question.transcript = transcript;
-    if (req.body.isPrediction !== undefined) question.isPrediction = req.body.isPrediction; // Always update if provided
+    if (req.body.isPredictive !== undefined) question.isPredictive = req.body.isPredictive; // Always update if provided
 
     // 4. Update Summaries
     if (summaries) {

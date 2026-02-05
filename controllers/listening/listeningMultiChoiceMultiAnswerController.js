@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 // Add a new question
 export const addQuestion = async (req, res) => {
   try {
-    const { title, question, options, correctOptions, difficulty, transcript } = req.body;
+    const { title, question, options, correctOptions, difficulty, transcript, isPredictive } = req.body;
 
     if (!req.file) {
       return res.status(400).json({ success: false, message: "Audio file is required" });
@@ -35,7 +35,7 @@ export const addQuestion = async (req, res) => {
       correctOptions: parsedCorrectOptions,
 
       difficulty: difficulty || "Medium",
-      isPrediction: req.body.isPrediction || false
+      isPredictive: isPredictive || false
     });
 
     res.status(201).json({
@@ -284,7 +284,7 @@ export const updateQuestion = async (req, res) => {
     if (question !== undefined) updateData.question = question;
     if (difficulty !== undefined) updateData.difficulty = difficulty;
     if (transcript !== undefined) updateData.transcript = transcript;
-    if (req.body.isPrediction !== undefined) updateData.isPrediction = req.body.isPrediction;
+    if (req.body.isPredictive !== undefined) updateData.isPredictive = req.body.isPredictive;
 
     // 2. Parse Options (FormData sends arrays as stringified JSON)
     if (options) {

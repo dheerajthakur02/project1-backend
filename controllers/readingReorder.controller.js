@@ -4,14 +4,14 @@ import mongoose from "mongoose";
 // Add a new question
 export const addQuestion = async (req, res) => {
   try {
-    const { title, sentences, correctOrder, difficulty, isPrediction } = req.body;
+    const { title, sentences, correctOrder, difficulty, isPredictive } = req.body;
 
     const newQuestion = new ReadingReorder({
       title,
       sentences,
       correctOrder,
       difficulty,
-      isPrediction,
+      isPredictive,
     });
 
     await newQuestion.save();

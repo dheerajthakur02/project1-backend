@@ -29,6 +29,7 @@ export const createQuestion = async (req, res) => {
             keywords: parsedKeywords,
             keywords: parsedKeywords,
             modelAnswer: req.body.modelAnswer || "",
+            isPredictive: req.body.isPredictive || false,
         });
 
         res.status(201).json({ success: true, data: newQuestion });

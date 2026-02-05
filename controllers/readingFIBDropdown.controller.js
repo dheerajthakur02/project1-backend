@@ -5,14 +5,14 @@ import mongoose from "mongoose";
 // Add a new question
 export const addQuestion = async (req, res) => {
   try {
-    const { title, text, blanks, difficulty, isPrediction } = req.body;
+    const { title, text, blanks, difficulty, isPredictive } = req.body;
 
     const newQuestion = new ReadingFIBDropdown({
       title,
       text,
       blanks,
       difficulty,
-      isPrediction,
+      isPredictive,
     });
 
     await newQuestion.save();
@@ -74,7 +74,7 @@ export const getQuestionById = async (req, res) => {
 export const updateQuestion = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, text, blanks, difficulty, isPrediction } = req.body;
+    const { title, text, blanks, difficulty, isPredictive } = req.body;
 
     const question = await ReadingFIBDropdown.findById(id);
     if (!question) {
@@ -88,7 +88,7 @@ export const updateQuestion = async (req, res) => {
     if (text !== undefined) question.text = text;
     if (blanks !== undefined) question.blanks = blanks;
     if (difficulty !== undefined) question.difficulty = difficulty;
-    if (isPrediction !== undefined) question.isPrediction = isPrediction;
+    if (isPredictive !== undefined) question.isPredictive = isPredictive;
 
     await question.save();
 

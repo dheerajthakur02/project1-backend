@@ -5,7 +5,7 @@ import stringSimilarity from "string-similarity";
 
 // Upload Question
 export const addQuestion = async (req, res) => {
-  const { title, prepareTime, answerTime, answer, transcript, isPrediction } = req.body;
+  const { title, prepareTime, answerTime, answer, transcript, isPredictive } = req.body;
 
   const audio = await cloudinary.uploader.upload(req.file.path, {
     resource_type: "video"
@@ -21,6 +21,7 @@ export const addQuestion = async (req, res) => {
     audioUrl: audio?.secure_url,
     cloudinaryId: audio?.public_id,
     difficulty: req.body.difficulty || "Medium",
+    isPredictive: isPredictive || false
   });
 
   res.json(question);
@@ -236,7 +237,7 @@ export const updateQuestion = async (req, res) => {
     const prepareTime = req.body?.prepareTime;
     const answerTime = req.body?.answerTime;
     const transcript = req.body?.transcript;
-    const isPrediction = req.body?.isPrediction
+    const isPredictive = req.body?.isPredictive
 
     // If new audio uploaded
     if (req.file) {
@@ -259,6 +260,7 @@ export const updateQuestion = async (req, res) => {
     if (prepareTime !== undefined) question.prepareTime = prepareTime;
     if (answerTime !== undefined) question.answerTime = answerTime;
     if (transcript !== undefined) question.transcript = transcript;
+    if (isPredictive !== undefined) question.isPredictive = isPredictive;
 
     await question.save();
 

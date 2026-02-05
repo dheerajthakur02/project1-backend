@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 // Add a new question
 export const addQuestion = async (req, res) => {
   try {
-    const { title, text, options, correctAnswers, difficulty, isPrediction } = req.body;
+    const { title, text, options, correctAnswers, difficulty, isPredictive } = req.body;
 
     const newQuestion = new ReadingFIBDragDrop({
       title,
@@ -13,7 +13,7 @@ export const addQuestion = async (req, res) => {
       options,
       correctAnswers,
       difficulty,
-      isPrediction,
+      isPredictive,
     });
 
     await newQuestion.save();

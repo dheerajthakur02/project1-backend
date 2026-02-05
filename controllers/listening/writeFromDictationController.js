@@ -44,7 +44,7 @@ export const createQuestion = async (req, res) => {
       transcript,
       cloudinaryId: audio.public_id,
       difficulty: difficulty || "Medium",
-      isPrediction: req.body.isPrediction || false
+      isPredictive: req.body.isPredictive || false
     });
 
     res.status(201).json({ success: true, question });
@@ -365,7 +365,7 @@ export const updateQuestion = async (req, res) => {
     // ---------- 2. UPDATE TEXT FIELDS ----------
     if (title !== undefined) question.title = title;
     if (difficulty !== undefined) question.difficulty = difficulty;
-    if (req.body.isPrediction !== undefined) question.isPrediction = req.body.isPrediction;
+    if (req.body.isPredictive !== undefined) question.isPredictive = req.body.isPredictive;
     
     // If user provided a manual transcript, it overrides everything
     if (manualTranscript !== undefined) {

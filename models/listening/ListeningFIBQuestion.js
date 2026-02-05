@@ -12,7 +12,7 @@ const ListeningFIBQuestionSchema = new mongoose.Schema({
     },
   ],
   difficulty: { type: String, enum: ["Easy", "Medium", "Hard"], default: "Medium" },
-  isPrediction: { type: Boolean, default: false },
+  isPredictive: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
 

@@ -18,7 +18,7 @@ const readAloudSchema = new mongoose.Schema(
       type: String,
       enum: ["Easy", "Medium", "Difficult"],
     },
-    isPrediction: {
+    isPredictive: {
       type: Boolean,
       default: false
     }

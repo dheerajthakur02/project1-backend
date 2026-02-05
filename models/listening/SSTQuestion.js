@@ -12,7 +12,7 @@ const SSTQuestionSchema = new mongoose.Schema({
     cloudinaryId: String,
     keywords: [String], // Important for content scoring
     difficulty: { type: String, enum: ['Easy', 'Medium', 'Hard'], default: 'Medium' },
-    isPrediction: { type: Boolean, default: false }
+    isPredictive: { type: Boolean, default: false }
 });
 
 

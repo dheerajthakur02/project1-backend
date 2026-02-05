@@ -25,7 +25,7 @@ export const getAllQuestions = async (req, res) => {
 
 export const addRetellQuestion = async (req, res) => {
   try {
-     const { title, prepareTime, answerTime, difficulty, isPrediction } = req.body;
+     const { title, prepareTime, answerTime, difficulty, isPredictive } = req.body;
 
     if (!req.file) {
       return res.status(400).json({
@@ -66,7 +66,8 @@ export const addRetellQuestion = async (req, res) => {
       transcript: transcript,
       prepareTime: prepareTime || 10,
       answerTime: answerTime || 40,
-      difficulty: difficulty || "Medium"
+      difficulty: difficulty || "Medium",
+      isPredictive: isPredictive || false
     });
 
     res.status(201).json({
@@ -97,7 +98,7 @@ export const updateRetellQuestion = async (req, res) => {
       prepareTime,
       answerTime,
       difficulty,
-      isPrediction
+      isPredictive
     } = req.body;
 
     /* -------- AUDIO UPDATE -------- */
@@ -141,6 +142,7 @@ export const updateRetellQuestion = async (req, res) => {
     if (prepareTime !== undefined) question.prepareTime = prepareTime;
     if (answerTime !== undefined) question.answerTime = answerTime;
     if (difficulty !== undefined) question.difficulty = difficulty;
+    if (isPredictive !== undefined) question.isPredictive = isPredictive;
 
     await question.save();
     res.json(question);

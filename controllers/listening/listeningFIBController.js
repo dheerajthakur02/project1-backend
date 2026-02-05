@@ -6,7 +6,7 @@ import fs from "fs";
 // ---------- CREATE QUESTION ----------
 export const addListeningFIBQuestion = async (req, res) => {
   try {
-    const { title, transcript, correctAnswers, difficulty } = req.body;
+    const { title, transcript, correctAnswers, difficulty, isPredictive } = req.body;
 
     if (!req.file) {
       return res.status(400).json({ success: false, message: "Audio is required" });
@@ -29,7 +29,7 @@ export const addListeningFIBQuestion = async (req, res) => {
       correctAnswers: parsedCorrectAnswers,
 
       difficulty: difficulty || "Medium",
-      isPrediction: req.body.isPrediction || false
+      isPredictive: req.body.isPredictive || false
     });
 
     res.status(201).json({ success: true, question });
@@ -317,7 +317,7 @@ export const updateListeningFIBQuestion = async (req, res) => {
     if (transcript) question.transcript = transcript;
     if (difficulty) question.difficulty = difficulty;
     if (correctAnswers) question.correctAnswers = correctAnswers;
-    if (req.body.isPrediction !== undefined) question.isPrediction = req.body.isPrediction;
+    if (req.body.isPredictive !== undefined) question.isPredictive = req.body.isPredictive;
 
     await question.save();
     res.status(200).json({ success: true, question });

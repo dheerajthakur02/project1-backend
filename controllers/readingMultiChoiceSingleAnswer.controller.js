@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 // Add a new question
 export const addQuestion = async (req, res) => {
   try {
-    const { title, text, question, options, correctAnswer, difficulty, isPrediction } = req.body;
+    const { title, text, question, options, correctAnswer, difficulty, isPredictive } = req.body;
 
     const newQuestion = new ReadingMultiChoiceSingleAnswer({
       title,
@@ -13,7 +13,7 @@ export const addQuestion = async (req, res) => {
       options,
       correctAnswer,
       difficulty,
-      isPrediction,
+      isPredictive,
     });
 
     await newQuestion.save();

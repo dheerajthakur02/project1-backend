@@ -8,7 +8,7 @@ import mongoose from "mongoose";
 import RepeatAttempt from "../models/attemptRepeat.model.js";
 // Upload Question
 export const addQuestion = async (req, res) => {
-  const { title, prepareTime, answerTime, transcript, isPrediction } = req.body;
+  const { title, prepareTime, answerTime, transcript, isPredictive } = req.body;
 
   if (!transcript) {
     return res.status(400).json({ message: "Transcript is required" });
@@ -26,6 +26,7 @@ export const addQuestion = async (req, res) => {
     audioUrl: audio?.secure_url,
     cloudinaryId: audio?.public_id,
     difficulty: req.body.difficulty || "Medium",
+    isPredictive: isPredictive || false,
   });
 
   res.json(question);
@@ -160,7 +161,7 @@ export const updateQuestion = async (req, res) => {
     const title = req.body?.title;
     const prepareTime = req.body?.prepareTime;
     const answerTime = req.body?.answerTime;
-    const isPrediction = req.body?.isPrediction
+    const isPredictive = req.body?.isPredictive
 
     // If new audio uploaded
     if (req.file) {
@@ -182,6 +183,7 @@ export const updateQuestion = async (req, res) => {
     if (title !== undefined) question.title = title;
     if (prepareTime !== undefined) question.prepareTime = prepareTime;
     if (answerTime !== undefined) question.answerTime = answerTime;
+    if (isPredictive !== undefined) question.isPredictive = isPredictive;
 
     await question.save();
 

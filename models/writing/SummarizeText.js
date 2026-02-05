@@ -27,7 +27,7 @@ const summarizeTextQuestionSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    isPrediction: {
+    isPredictive: {
       type: Boolean,
       default: false
     }

@@ -6,7 +6,7 @@ const WriteFromDictationQuestionSchema = new mongoose.Schema({
     transcript: String, // The correct sentence
     cloudinaryId: String,
     difficulty: { type: String, enum: ['Easy', 'Medium', 'Hard'], default: 'Medium' },
-    isPrediction: { type: Boolean, default: false }
+    isPredictive: { type: Boolean, default: false }
 });
 
 

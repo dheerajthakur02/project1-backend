@@ -23,7 +23,7 @@ const readingReorderSchema = new mongoose.Schema(
       enum: ["Easy", "Medium", "Hard"],
       default: "Medium",
     },
-    isPrediction: {
+    isPredictive: {
       type: Boolean,
       default: false,
     },
