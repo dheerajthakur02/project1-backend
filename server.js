@@ -24,7 +24,12 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    const allowedOrigins = ["http://localhost:5174", "http://localhost:5173", "https://pawan-pte.netlify.app"];
+    const allowedOrigins = [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "https://pawan-pte.netlify.app",
+      process.env.CLIENT_URL // Allow CLIENT_URL from env if set
+    ].filter(Boolean); // Remove undefined/null if env var is missing
 
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
