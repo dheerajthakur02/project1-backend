@@ -69,8 +69,11 @@ const calculatePracticeStatsHelper = async (userId) => {
 
         for (const mod of modules) {
             const qCount = await mod.q.countDocuments();
-            // Check unique attempts by this user using specific foreign key or default 'questionId'
-            const foreignKey = mod.foreignKey || 'questionId';
+            
+            // Dynamic Foreign Key Detection
+            // Check if the Attempt model has 'paragraphId' in its schema, otherwise default to 'questionId'
+            const foreignKey = mod.a.schema.path('paragraphId') ? 'paragraphId' : 'questionId';
+            
             const aCount = await mod.a.distinct(foreignKey, { userId });
             
             total += qCount;
@@ -81,7 +84,7 @@ const calculatePracticeStatsHelper = async (userId) => {
 
     // 1. Speaking
     const speakingModules = [
-        { q: ReadAloud, a: Attempt, foreignKey: 'paragraphId' },
+        { q: ReadAloud, a: Attempt },
         { q: RepeatQuestion, a: RepeatAttempt },
         { q: ImageQuestion, a: ImageAttempt },
         { q: RetellLectureQuestion, a: RetellLectureAttempt },
