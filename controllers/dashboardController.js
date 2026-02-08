@@ -69,8 +69,9 @@ const calculatePracticeStatsHelper = async (userId) => {
 
         for (const mod of modules) {
             const qCount = await mod.q.countDocuments();
-            // Check unique attempts by this user
-            const aCount = await mod.a.distinct('questionId', { userId });
+            // Check unique attempts by this user using specific foreign key or default 'questionId'
+            const foreignKey = mod.foreignKey || 'questionId';
+            const aCount = await mod.a.distinct(foreignKey, { userId });
             
             total += qCount;
             practiced += aCount.length;
@@ -80,7 +81,7 @@ const calculatePracticeStatsHelper = async (userId) => {
 
     // 1. Speaking
     const speakingModules = [
-        { q: ReadAloud, a: Attempt },
+        { q: ReadAloud, a: Attempt, foreignKey: 'paragraphId' },
         { q: RepeatQuestion, a: RepeatAttempt },
         { q: ImageQuestion, a: ImageAttempt },
         { q: RetellLectureQuestion, a: RetellLectureAttempt },
@@ -140,21 +141,7 @@ export const getDashboardData = async (req, res) => {
     // Helper for fetching
     const fetchRecent = (Model, sortKey = 'createdAt') => Model.find({ userId }).sort({ [sortKey]: -1 }).limit(5).lean();
 
-    const [
-        raAttempts, 
-        rsAttempts, 
-        wfdAttempts, 
-        roAttempts,
-        rlAttempts,
-        asqAttempts,
-        swtAttempts,
-        essayAttempts,
-        diAttempts,
-        rfibdAttempts,
-        rfibddAttempts,
-        rmcmaAttempts,
-        rmcsaAttempts
-    ] = await Promise.all([
+    const allResults = await Promise.all([
         Attempt.find({ userId }).sort({ date: -1 }).limit(5).lean(),
         RepeatAttempt.find({ userId }).sort({ date: -1 }).limit(5).lean(),
         WriteFromDictationAttempt.find({ userId }).sort({ createdAt: -1 }).limit(5).lean(),
@@ -169,8 +156,27 @@ export const getDashboardData = async (req, res) => {
         fetchRecent(AttemptReadingFIBDropdown),
         fetchRecent(AttemptReadingFIBDragDrop),
         fetchRecent(AttemptReadingMultiChoiceMultiAnswer),
-        fetchRecent(AttemptReadingMultiChoiceSingleAnswer)
+        fetchRecent(AttemptReadingMultiChoiceSingleAnswer),
+
+        // Added Missing Listening & Speaking Modules
+        fetchRecent(SSTAttempt),
+        fetchRecent(ListeningMultiChoiceMultiAnswerAttempt),
+        fetchRecent(ListeningFIBAttempt),
+        fetchRecent(HighlightSummaryAttempt),
+        fetchRecent(ChooseSingleAnswerAttempt),
+        fetchRecent(SelectMissingWordAttempt),
+        fetchRecent(HIWAttempt),
+        fetchRecent(SummarizeGroupAttempt),
+        fetchRecent(RespondSituationAttempt)
     ]);
+
+    const [
+        raAttempts, rsAttempts, wfdAttempts, roAttempts,
+        rlAttempts, asqAttempts, swtAttempts, essayAttempts, diAttempts,
+        rfibdAttempts, rfibddAttempts, rmcmaAttempts, rmcsaAttempts,
+        sstAttempts, lmcmaAttempts, lfibAttempts, hcsAttempts, 
+        lcsaAttempts, smwAttempts, hiwAttempts, sgdAttempts, rtsAttempts
+    ] = allResults;
 
     // --- 2. Normalize Data ---
     const normalize = (item, type, label, scoreKey = 'score', dateKey = 'date') => ({
@@ -198,6 +204,17 @@ export const getDashboardData = async (req, res) => {
         ...rfibddAttempts.map(a => normalize(a, 'RFIB-DD', 'Reading FIB Drag & Drop', 'score', 'createdAt')),
         ...rmcmaAttempts.map(a => normalize(a, 'R-MCQ-M', 'Reading MCQ Multi', 'score', 'createdAt')),
         ...rmcsaAttempts.map(a => normalize(a, 'R-MCQ-S', 'Reading MCQ Single', 'score', 'createdAt')),
+
+        // Normalizing Missing Modules
+        ...sstAttempts.map(a => normalize(a, 'SST', 'Summarize Spoken Text', 'score', 'createdAt')),
+        ...lmcmaAttempts.map(a => normalize(a, 'L-MCQ-M', 'Listening MCQ Multi', 'score', 'createdAt')),
+        ...lfibAttempts.map(a => normalize(a, 'LFIB', 'Listening FIB', 'score', 'createdAt')),
+        ...hcsAttempts.map(a => normalize(a, 'HCS', 'Highlight Correct Summary', 'score', 'createdAt')),
+        ...lcsaAttempts.map(a => normalize(a, 'L-MCQ-S', 'Listening MCQ Single', 'score', 'createdAt')),
+        ...smwAttempts.map(a => normalize(a, 'SMW', 'Select Missing Word', 'score', 'createdAt')),
+        ...hiwAttempts.map(a => normalize(a, 'HIW', 'Highlight Incorrect Words', 'score', 'createdAt')),
+        ...sgdAttempts.map(a => normalize(a, 'SGD', 'Summarize Group Discussion', 'score', 'createdAt')),
+        ...rtsAttempts.map(a => normalize(a, 'RTS', 'Respond to Situation', 'score', 'createdAt')),
     ];
 
     // --- 3. Sort and Slice for Final History ---
