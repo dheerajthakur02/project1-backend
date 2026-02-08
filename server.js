@@ -24,7 +24,7 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    const allowedOrigins = ["http://localhost:5174", "http://localhost:5173"];
+    const allowedOrigins = ["http://localhost:5174", "http://localhost:5173", "https://pawan-pte.netlify.app"];
 
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
