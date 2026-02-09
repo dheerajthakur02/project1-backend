@@ -62,10 +62,14 @@ export const signIn = async (req, res) => {
     }
     const token = generateToken(user.id, user.role);
     setCookie(res, token);
+    user.token = token;
+
+   
 
     return res.status(200).json({
       message: `Login successfully! Welcome ${user.name}`,
       data: user,
+      token: token,
       success: true,
     });
   } catch (error) {

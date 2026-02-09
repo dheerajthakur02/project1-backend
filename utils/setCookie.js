@@ -1,9 +1,9 @@
-const setCookie = (res, token) => {
+
+ export const setCookie = (res, token) => {
   res.cookie("token", token, {
-    maxAge: 7 * 24 * 60 * 60 * 1000,
     httpOnly: true,
-    sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
+    secure: true,       // 🔥 REQUIRED on Render
+    sameSite: "None",   // 🔥 REQUIRED for cross-site
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 };
-export default setCookie;
