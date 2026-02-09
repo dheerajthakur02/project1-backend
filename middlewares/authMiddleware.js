@@ -2,7 +2,13 @@ import jwt from "jsonwebtoken";
 
 export const authorize = (roles = []) => {
   return (req, res, next) => {
-    const token = req.cookies?.token;
+    const token =  req.cookies?.token ||                           // Cookie
+    req.headers.authorization?.split(" ")[1] ||     // Authorization: Bearer <token>
+    req.headers["x-access-token"] ||                // Custom header
+    req.query?.token ||                             // Query param ?token=
+    req.body?.token;   
+
+    
     if (!token) {
       return res.status(401).json({ message: "Access token is missing" });
     }
