@@ -8,7 +8,6 @@ export const authorize = (roles = []) => {
     req.query?.token ||                             // Query param ?token=
     req.body?.token;   
 
-    
     if (!token) {
       return res.status(401).json({ message: "Access token is missing" });
     }
