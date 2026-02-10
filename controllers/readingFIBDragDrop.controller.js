@@ -240,3 +240,26 @@ export const getCommunityAttempts = async (req, res) => {
     });
   }
 };
+
+export const deleteQuestion = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const question = await ReadingFIBDragDrop.findById(id);
+    if (!question) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Question not found" });
+    }
+
+    await ReadingFIBDragDrop.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: "Reading FIB Dropdown question deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete Question Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

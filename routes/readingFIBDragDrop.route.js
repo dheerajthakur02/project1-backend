@@ -7,6 +7,7 @@ import {
   getAttempts,
   getAll,
   getCommunityAttempts,
+  deleteQuestion,
 } from "../controllers/readingFIBDragDrop.controller.js";
 import { authorize } from "../middlewares/authMiddleware.js";
 
@@ -23,5 +24,5 @@ router.post("/submit", authorize(), checkPracticeLimit, submitAttempt);
 router.get("/attempts/all", getAll);
 router.get("/attempts/:questionId", authorize(), getAttempts);
 router.get("/:questionId/community", getCommunityAttempts)
-
+router.delete("/:id", deleteQuestion)
 export default router;
