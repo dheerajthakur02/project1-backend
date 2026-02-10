@@ -332,18 +332,19 @@ export const deleteQuestion = async (req, res) => {
 export const submitHIWAttempt = async (req, res) => {
   try {
     const { questionId, userId, selectedIndices, timeTaken } = req.body;
+  
     const question = await HIWQuestion.findById(questionId);
 
     const mistakeIndices = question.mistakes.map(m => m.index);
     
     // 1. Correct Words: User clicked a word that is actually a mistake
-    const correctCount = selectedIndices.filter(idx => mistakeIndices.includes(idx)).length;
+    const correctCount = selectedIndices.filter(idx => mistakeIndices.includes(idx+1)).length;
 
     // 2. Wrong Words: User clicked a word that was correct in the audio (Penalty)
-    const wrongCount = selectedIndices.filter(idx => !mistakeIndices.includes(idx)).length;
+    const wrongCount = selectedIndices.filter(idx => !mistakeIndices.includes(idx+1)).length;
 
     // 3. Missed Words: Actual mistakes the user failed to click
-    const missedCount = mistakeIndices.filter(idx => !selectedIndices.includes(idx)).length;
+    const missedCount = mistakeIndices.filter(idx => !selectedIndices.includes(idx+1)).length;
 
     // PTE Score Calculation
     const score = Math.max(0, correctCount - wrongCount);
