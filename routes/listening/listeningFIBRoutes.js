@@ -17,7 +17,7 @@ router.post("/add", upload.single("audio"), addListeningFIBQuestion);
 router.get("/", getListeningFIBQuestionsWithAttempts);
 router.get("/questions/:userId", getListeningFIBQuestionsWithAttempts);
 router.get("/:questionId/community", getListeningFIBCommunityAttempts);
-router.put("/:id", updateListeningFIBQuestion)
+router.put("/:id", upload.single("audio"),updateListeningFIBQuestion)
 router.delete("/:id", deleteQuestion)
 
 // Attempt routes

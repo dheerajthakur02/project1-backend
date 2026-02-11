@@ -6,7 +6,11 @@ import fs from "fs";
 // ---------- CREATE QUESTION ----------
 export const addListeningFIBQuestion = async (req, res) => {
   try {
-    const { title, transcript, correctAnswers, difficulty, isPredictive } = req.body;
+    const { title, transcript, correctAnswers, difficulty, isPredictive= false } = req.body;
+    const parsedIsPredictive =
+  isPredictive === "true" ? true :
+  isPredictive === "false" ? false :
+  false;
 
     if (!req.file) {
       return res.status(400).json({ success: false, message: "Audio is required" });
@@ -29,7 +33,7 @@ export const addListeningFIBQuestion = async (req, res) => {
       correctAnswers: parsedCorrectAnswers,
 
       difficulty: difficulty || "Medium",
-      isPredictive: req.body.isPredictive || false
+      isPredictive: parsedIsPredictive 
     });
 
     res.status(201).json({ success: true, question });
@@ -276,11 +280,22 @@ export const submitListeningFIBAttempt = async (req, res) => {
   }
 };
 
-// ---------- UPDATE QUESTION ----------
 export const updateListeningFIBQuestion = async (req, res) => {
   try {
     const { id } = req.params;
-    let { title, transcript, correctAnswers, difficulty } = req.body;
+    console.log(req.body)
+
+   let title = req.body?.title
+    let transcript = req.body?.transcript
+     let correctAnswers = req.body?.correctAnswers 
+     let difficulty = req.body?.difficulty
+
+    // 🔥 Parse boolean safely
+    let isPredictive;
+    if (req.body?.isPredictive !== undefined) {
+      if (req.body.isPredictive === "true") isPredictive = true;
+      else if (req.body.isPredictive === "false") isPredictive = false;
+    }
 
     const question = await ListeningFIBQuestion.findById(id);
     if (!question) {
@@ -288,36 +303,40 @@ export const updateListeningFIBQuestion = async (req, res) => {
       return res.status(404).json({ success: false, message: "Question not found" });
     }
 
-    // 1. Handle Correct Answers Parsing (FormData sends arrays as strings)
+    // Parse correctAnswers
     if (correctAnswers && typeof correctAnswers === "string") {
       try {
         correctAnswers = JSON.parse(correctAnswers);
-      } catch (e) {
+      } catch {
         return res.status(400).json({ success: false, message: "Invalid answers format" });
       }
     }
 
-    // 2. Handle Audio Update
+    // Audio update
     if (req.file) {
-      // Delete old from Cloudinary
       if (question.cloudinaryId) {
-        await cloudinary.uploader.destroy(question.cloudinaryId, { resource_type: "video" });
+        await cloudinary.uploader.destroy(question.cloudinaryId, {
+          resource_type: "video",
+        });
       }
-      // Upload new
-      const result = await cloudinary.uploader.upload(req.file.path, { resource_type: "video" });
+
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        resource_type: "video",
+      });
+
       question.audioUrl = result.secure_url;
       question.cloudinaryId = result.public_id;
-      
-      // Cleanup local temp file
       fs.unlinkSync(req.file.path);
     }
 
-    // 3. Update Fields
+    // Field updates
     if (title) question.title = title;
     if (transcript) question.transcript = transcript;
     if (difficulty) question.difficulty = difficulty;
     if (correctAnswers) question.correctAnswers = correctAnswers;
-    if (req.body.isPredictive !== undefined) question.isPredictive = req.body.isPredictive;
+    if (typeof isPredictive === "boolean") {
+      question.isPredictive = isPredictive;
+    }
 
     await question.save();
     res.status(200).json({ success: true, question });

@@ -15,6 +15,7 @@ const HIWQuestionSchema = new mongoose.Schema({
       answer: String,
     }
   ],
+  transcript: String,
   difficulty: { type: String, enum: ["Easy", "Medium", "Hard"] },
   isPredictive: { type: Boolean, default: false },
 });

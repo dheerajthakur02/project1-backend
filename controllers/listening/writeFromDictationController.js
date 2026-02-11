@@ -308,6 +308,7 @@ export const updateQuestion = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, difficulty, transcript: manualTranscript } = req.body;
+ 
 
     const question = await WriteFromDictationQuestion.findById(id);
     if (!question) {

@@ -93,6 +93,7 @@ export const updateHIWQuestion = async (req, res) => {
 
     // Handle Audio Update
     let finalTranscript = req.body.transcript;
+    console.log(finalTranscript)
     
     if (req.file) {
       // 1. Delete old audio
