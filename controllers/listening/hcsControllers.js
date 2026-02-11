@@ -29,7 +29,7 @@ export const addHighlightSummaryQuestion = async (req, res) => {
     }
 
     // 3. Validation
-    if (!summaries || summaries.length !== 3) {
+    if (!summaries || summaries.length < 3) {
       if (req.file) fs.unlinkSync(req.file.path); // Cleanup temp file
       return res.status(400).json({ success: false, message: "Provide exactly 3 summaries" });
     }
