@@ -1,5 +1,5 @@
 import  Speaking, { SpeakingResult } from "../../models/mocktest/Speaking.js";
-
+import mongoose from "mongoose";
 
 import Question from "../../models/repeat.model.js";
 import { ImageQuestion } from "../../models/image.model.js"
@@ -129,23 +129,24 @@ export const updateSpeaking = async (req, res) => {
   }
 };
 
+
 export const getUnusedSpeakingQuestions = async (req, res) => {
   try {
+    // 1️⃣ Get all used question IDs from speaking sections
+    const usedQuestionsInSpeaking = await Speaking.find(
+      {},
+      {
+        readAloudQuestions: 1,
+        repeatSentenceQuestions: 1,
+        describeImageQuestions: 1,
+        reTellLectureQuestions: 1,
+        summarizeSpokenTextQuestions: 1,
+        highlightIncorrectWordsQuestions: 1,
+        _id: 0
+      }
+    );
 
-
-    // Find all questions currently used in any Speaking section
-    const usedQuestionsInSpeaking = await Speaking.find({}, {
-      readAloudQuestions: 1,
-      repeatSentenceQuestions: 1,
-      describeImageQuestions: 1,
-      reTellLectureQuestions: 1,
-      summarizeSpokenTextQuestions: 1,
-      highlightIncorrectWordsQuestions: 1,
-      _id: 0
-    });
-
- 
-
+    // 2️⃣ Sets to collect used IDs
     const usedReadAloudIds = new Set();
     const usedRepeatSentenceIds = new Set();
     const usedDescribeImageIds = new Set();
@@ -153,24 +154,56 @@ export const getUnusedSpeakingQuestions = async (req, res) => {
     const usedSummarizeSpokenTextIds = new Set();
     const usedHighlightIncorrectWordsIds = new Set();
 
+    // 3️⃣ Safely extract IDs
     usedQuestionsInSpeaking.forEach(speaking => {
-      speaking.readAloudQuestions.forEach(id => usedReadAloudIds.add(id.toString()));
-      speaking.repeatSentenceQuestions.forEach(id => usedRepeatSentenceIds.add(id.toString()));
-      speaking.describeImageQuestions.forEach(id => usedDescribeImageIds.add(id.toString()));
-      speaking.reTellLectureQuestions.forEach(id => usedReTellLectureIds.add(id.toString()));
-      speaking.summarizeSpokenTextQuestions.forEach(id => usedSummarizeSpokenTextIds.add(id.toString()));
-      speaking.highlightIncorrectWordsQuestions.forEach(id => usedHighlightIncorrectWordsIds.add(id.toString()));
+      (speaking.readAloudQuestions || []).forEach(id =>
+        usedReadAloudIds.add(id.toString())
+      );
+
+      (speaking.repeatSentenceQuestions || []).forEach(id =>
+        usedRepeatSentenceIds.add(id.toString())
+      );
+
+      (speaking.describeImageQuestions || []).forEach(id =>
+        usedDescribeImageIds.add(id.toString())
+      );
+
+      (speaking.reTellLectureQuestions || []).forEach(id =>
+        usedReTellLectureIds.add(id.toString())
+      );
+
+      (speaking.summarizeSpokenTextQuestions || []).forEach(id =>
+        usedSummarizeSpokenTextIds.add(id.toString())
+      );
+
+      (speaking.highlightIncorrectWordsQuestions || []).forEach(id =>
+        usedHighlightIncorrectWordsIds.add(id.toString())
+      );
     });
 
-    // Fetch all questions of each type and filter out the used ones
-    const unusedReadAloud = await ReadAloud.find({ _id: { $nin: Array.from(usedReadAloudIds) } });
-    const unusedRepeatSentence = await Question.find({ _id: { $nin: Array.from(usedRepeatSentenceIds) } });
-    const unusedDescribeImage = await ImageQuestion.find({ _id: { $nin: Array.from(usedDescribeImageIds) } });
-    const unusedReTellLecture = await RetellLectureQuestion.find({ _id: { $nin: Array.from(usedReTellLectureIds) } });
-    const unusedSummarizeSpokenText = await SSTQuestion.find({ _id: { $nin: Array.from(usedSummarizeSpokenTextIds) } });
-    const unusedHighlightIncorrectWords = await HIWQuestion.find({ _id: { $nin: Array.from(usedHighlightIncorrectWordsIds) } });
+    // 4️⃣ Helper to convert Set<string> → ObjectId[]
+    const toObjectIds = (set) =>
+      Array.from(set).map(id => new mongoose.Types.ObjectId(id));
 
-    res.status(200).json({
+    // 5️⃣ Fetch unused questions
+    const [
+      unusedReadAloud,
+      unusedRepeatSentence,
+      unusedDescribeImage,
+      unusedReTellLecture,
+      unusedSummarizeSpokenText,
+      unusedHighlightIncorrectWords
+    ] = await Promise.all([
+      ReadAloud.find({ _id: { $nin: toObjectIds(usedReadAloudIds) } }),
+      Question.find({ _id: { $nin: toObjectIds(usedRepeatSentenceIds) } }),
+      ImageQuestion.find({ _id: { $nin: toObjectIds(usedDescribeImageIds) } }),
+      RetellLectureQuestion.find({ _id: { $nin: toObjectIds(usedReTellLectureIds) } }),
+      SSTQuestion.find({ _id: { $nin: toObjectIds(usedSummarizeSpokenTextIds) } }),
+      HIWQuestion.find({ _id: { $nin: toObjectIds(usedHighlightIncorrectWordsIds) } }),
+    ]);
+
+    // 6️⃣ Response
+    return res.status(200).json({
       success: true,
       data: {
         readAloud: unusedReadAloud,
@@ -183,12 +216,14 @@ export const getUnusedSpeakingQuestions = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({
+    console.error("Unused Speaking Error:", error);
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
+
 
 
 
