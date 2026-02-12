@@ -26,7 +26,8 @@ const SSTAttemptSchema = new mongoose.Schema({
         form: Number,       // Max 2
         grammar: Number,    // Max 2
         vocabulary: Number, // Max 2
-        spelling: Number    // Max 2
+        spelling: Number,   // Max 2
+        convention: Number  // Average of Content + Form
     },
     totalScore: Number,      // Max 12
     overallScore: Number,    // Scaled to 90

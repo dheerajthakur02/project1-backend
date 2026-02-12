@@ -488,12 +488,15 @@ export const submitSSTAttempt = async (req, res) => {
     const wordCount = words.length;
 
     /* ---------------- FORM (Max 2) ---------------- */
-    // PTE Standard: 50-70 words is ideal. 
-    // We will allow 40-75 for full marks to be lenient, or strict 50-70.
+    // Logic: 10-32 words -> 1 mark, 33-50 words -> 2 marks, else 0
     let form = 0;
-    if (wordCount >= 50 && wordCount <= 70) form = 2;
-    else if ((wordCount >= 40 && wordCount < 50) || (wordCount > 70 && wordCount <= 100)) form = 1;
-    else form = 0;
+    if (wordCount >= 33 && wordCount <= 50) {
+        form = 2;
+    } else if (wordCount >= 10 && wordCount <= 32) {
+        form = 1;
+    } else {
+        form = 0;
+    }
 
     /* ---------------- CONTENT (Max 4) ---------------- */
     const targetClean = clean(question.answer);
@@ -529,6 +532,11 @@ export const submitSSTAttempt = async (req, res) => {
     let spelling = 2;
     if (summaryText.includes("  ") || /[a-z][.][a-z]/.test(summaryText)) spelling = 1;
 
+    /* ---------------- CONVENTION (Normalized to Max 2) ---------------- */
+    // Content (Max 4) + Form (Max 2) = Max 6.
+    // We want Convention to be Max 2. So we divide sum by 3.
+    const convention = Number(((content + form) / 3).toFixed(1));
+
     /* ---------------- TOTALS ---------------- */
     const totalScore = content + form + grammar + vocabulary + spelling; // Max 12
     
@@ -543,7 +551,7 @@ export const submitSSTAttempt = async (req, res) => {
       userId,
       summaryText,
       wordCount,
-      scores: { content, form, grammar, vocabulary, spelling },
+      scores: { content, form, grammar, vocabulary, spelling, convention },
       totalScore: scoreOutOf10, 
       timeTaken,
     });
@@ -553,6 +561,7 @@ export const submitSSTAttempt = async (req, res) => {
       data: {
         ...attempt._doc,
         totalScore: scoreOutOf10, // Matching frontend key
+        scores: { content, form, grammar, vocabulary, spelling, convention },
         writingScore,
         readingScore: listeningScore, // In SST, listening is the primary skill
         misSpelled: 0, 
