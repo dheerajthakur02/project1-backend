@@ -197,7 +197,7 @@ export const createRepeatAttempt = async (req, res) => {
       });
     }
 
-    const originalText = question.title;
+    const originalText = question.transcript;
     if (!originalText) {
       return res.status(500).json({
         success: false,
