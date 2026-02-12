@@ -384,44 +384,97 @@ export const createRetellAttempt = async (req, res) => {
       return res.status(404).json({ message: "Question not found" });
     }
 
-    const clean = (t) =>
-      t.toLowerCase().replace(/[^\w\s]/g, "").trim();
+    /* -------- HELPERS -------- */
+    const clean = (t) => t ? t.toLowerCase().replace(/[^\w\s]/g, "").trim() : "";
+    
+    // 1. Extract Keywords from Question (Simple Stopword Removal)
+    const stopwords = ["a", "an", "the", "in", "on", "at", "to", "for", "of", "and", "but", "so", "is", "are", "was", "were", "this", "that", "it", "he", "she", "they", "we", "you", "i"];
+    
+    const originalText = clean(question.transcript);
+    const originalWords = originalText.split(/\s+/).filter(w => w.length > 0);
+    const keywords = originalWords.filter(w => w.length > 3 && !stopwords.includes(w));
+    const uniqueKeywords = [...new Set(keywords)];
 
-    const originalWords = clean(question.transcript).split(/\s+/);
-    const studentWords = clean(transcript).split(/\s+/);
+    // 2. Analyze Student Transcript
+    const studentText = clean(transcript);
+    const studentWords = studentText.split(/\s+/).filter(w => w.length > 0);
+    const studentWordCount = studentWords.length;
 
-    let matched = 0;
-    const wordAnalysis = [];
+    console.log("Original Transcript:", originalText);
+    console.log("Keywords Extracted:", uniqueKeywords);
+    console.log("Student Transcript:", studentText);
+    console.log("Student Word Count:", studentWordCount);
 
-    originalWords.forEach((word, i) => {
-      const sWord = studentWords[i];
-      if (!sWord) {
-        wordAnalysis.push({ word, status: "missing" });
-      } else if (word === sWord) {
-        matched++;
-        wordAnalysis.push({ word, status: "correct" });
-      } else {
-        const sim = stringSimilarity.compareTwoStrings(word, sWord);
-        wordAnalysis.push({
-          word: sWord,
-          status: sim > 0.8 ? "correct" : "incorrect"
-        });
-        if (sim > 0.8) matched++;
-      }
+    // Count Keyword Matches
+    let matchedKeywords = 0;
+    uniqueKeywords.forEach(k => {
+        if (studentText.includes(k)) matchedKeywords++;
     });
+    
+    console.log("Matched Keywords Count:", matchedKeywords);
 
-    const content = (matched / originalWords.length) * 5;
-    const pronunciation =
-      stringSimilarity.compareTwoStrings(
-        clean(question.transcript),
-        clean(transcript)
-      ) * 5;
+    /* -------- SCORING LOGIC -------- */
+    
+    /* A. CONTENT (0-5) */
+    let content = 0;
+    
+    // Safety check for empty questions
+    if (uniqueKeywords.length === 0) {
+        // Fallback: Pure Length Based if no keywords found
+        if (studentWordCount >= 30) content = 5;
+        else if (studentWordCount >= 20) content = 4;
+        else if (studentWordCount >= 10) content = 3;
+        else content = 1;
+        console.log("Content Score (No Q-Keywords - Fallback):", content);
+    } else {
+        // 1. Keyword Coverage Score (Accuracy) - Max 5
+        const coverageRatio = matchedKeywords / uniqueKeywords.length;
+        const keywordScore = Math.min(5, coverageRatio * 5);
+        
+        // 2. Length-Based Score (Volume) - Max 5
+        let lengthScore = 0;
+        if (studentWordCount >= 90) lengthScore = 5;
+        else if (studentWordCount >= 70) lengthScore = 4;
+        else if (studentWordCount >= 50) lengthScore = 3;
+        else if (studentWordCount >= 30) lengthScore = 2;
+        else if (studentWordCount >= 10) lengthScore = 1; // Basic effort
+        
+        // Final Content Score is the MAXIMUM of Accuracy OR Volume
+        // This ensures short perfect answers get high scores, and long descriptive answers get high scores.
+        // We require at least 1 keyword match to get ANY score generally, unless it's purely length based fallback.
+        if (matchedKeywords === 0 && studentWordCount < 90) {
+             content = 0; // If you said nothing relevant and it's not super long, 0.
+             console.log("Content: 0 (No Keywords Matched)");
+        } else {
+             content = Math.max(keywordScore, lengthScore);
+             // Ensure integer steps? User asked for "increase marks", usually 0-5 integers or float.
+             // Let's keep it as float for nuance if coverage is 3.5, or round?
+             // PTE usually uses integers for traits. Let's round to nearest integer or 0.5?
+             // The prompt implied generic "marks". Let's use flexible float but cap at 5.
+             content = Math.min(5, content);
+             console.log(`Content Score: ${content} (Max of Keyword: ${keywordScore.toFixed(2)}, Length: ${lengthScore})`);
+        }
+    }
 
-    const fluency =
-      (Math.min(studentWords.length, originalWords.length) /
-        Math.max(studentWords.length, originalWords.length)) * 5;
+    /* B. PRONUNCIATION (0-5) - String Similarity */
+    const pronunciation = stringSimilarity.compareTwoStrings(originalText, studentText) * 5;
 
+    /* C. FLUENCY (0-5) - Length Ratio */
+    // Ratio of student length to original length (capped at 1.0)
+    let lengthRatio = 0;
+    if (originalWords.length > 0) {
+        lengthRatio = Math.min(studentWords.length, originalWords.length) / Math.max(studentWords.length, originalWords.length);
+    }
+    const fluency = lengthRatio * 5;
+
+    /* D. TOTAL SCORE */
     const score = content + pronunciation + fluency;
+
+    // Generate basic word analysis for frontend feedback
+    const wordAnalysis = studentWords.map(word => ({
+        word,
+        status: uniqueKeywords.includes(word) ? "correct" : "incorrect" 
+    }));
 
     const attempt = await RetellLectureAttempt.create({
       questionId,
@@ -435,7 +488,7 @@ export const createRetellAttempt = async (req, res) => {
       content: content.toFixed(1),
       pronunciation: pronunciation.toFixed(1),
       fluency: fluency.toFixed(1),
-      wordAnalysis
+      wordAnalysis // Store basic analysis
     });
 
     res.status(201).json({ success: true, data: attempt });

@@ -190,7 +190,13 @@ export const submitSummarizeWrittenAttempt = async (req, res) => {
   try {
     const { questionId, summaryText, timeTaken, userId } = req.body;
 
-    const words = summaryText.trim().split(/\s+/);
+    // 1. Fetch Question to get source text for Keyword Matching
+    const question = await SummarizeTextQuestion.findById(questionId);
+    if (!question) {
+        return res.status(404).json({ success: false, message: "Question not found" });
+    }
+
+    const words = summaryText.trim().split(/\s+/).filter(w => w.length > 0);
     const wordCount = words.length;
 
     /* -------- FORM RULE -------- */
@@ -207,34 +213,51 @@ export const submitSummarizeWrittenAttempt = async (req, res) => {
         formScore = 0;
     }
 
-    /* -------- DUMMY AI LOGIC (REPLACE LATER) -------- */
-    let content = Math.min(4, Math.floor(wordCount / 20));
-    let grammar = 2;
-    let vocabulary = 2;
-
-    // If form is 0 (due to word count or double dots), total score is 0
-    let score = 0;
-    if (formScore === 1) {
-       score = content + grammar + vocabulary + formScore;
-    } else {
-       // If form is invalid, usually other scores might strictly be 0 or penalized.
-       // User said "give marks 0", so we default everything to 0 if they fail this check?
-       // Let's set total score to 0 directly if ".." is present, overriding everything.
-       if (summaryText.includes("..")) {
-           content = 0;
-           grammar = 0;
-           vocabulary = 0;
-           formScore = 0;
-           score = 0;
-       } else {
-           // Standard word count failure logic (usually keeps component scores but form is 0)
-           // But PTE rule: If form is 0, Content is 0.
-           // For now, let's keep the user's specific request about ".." separate/explicit.
-           score = content + grammar + vocabulary + formScore;
-       }
-    }
+    /* -------- CONTENT SCORING LOGIC (New Request) -------- */
+    let content = 0;
     
-    // Refined logic based on "give marks 0":
+    // 1. Extract Keywords from Question (Simple Stopword Removal)
+    const stopwords = ["a", "an", "the", "in", "on", "at", "to", "for", "of", "and", "but", "so", "is", "are", "was", "were", "this", "that"];
+    const questionWords = question.paragraph.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").split(/\s+/);
+    const keywords = questionWords.filter(w => w.length > 3 && !stopwords.includes(w));
+    const uniqueKeywords = [...new Set(keywords)];
+
+    // 2. Count Matches in Student Answer
+    const studentLower = summaryText.toLowerCase();
+    let matches = 0;
+    uniqueKeywords.forEach(k => {
+        if (studentLower.includes(k)) matches++;
+    });
+
+    // 3. Logic: Increase Score with Length + Keyword Check
+    // If NO keywords matched -> 0 Content (Irrelevant)
+    if (matches === 0) {
+        content = 0;
+    } else {
+        // Award score based on length tiers (assuming minimal relevance met)
+        // User asked: "increase marks of content with increasing length"
+        if (wordCount >= 55) content = 4;       // Long -> High Score
+        else if (wordCount >= 40) content = 3;  // Medium-Long
+        else if (wordCount >= 25) content = 2;  // Medium
+        else if (wordCount >= 5) content = 1;   // Short
+        else content = 0;                       // Too short
+    }
+
+    /* -------- GRAMMAR & VOCAB -------- */
+    let grammar = 2;
+    // Simple checks: Period at end, Capital at start
+    if (!/^[A-Z]/.test(summaryText.trim())) grammar -= 1;
+    if (!/[.!?]$/.test(summaryText.trim())) grammar -= 1;
+    if (grammar < 0) grammar = 0;
+
+    let vocabulary = 2; 
+    if (wordCount < 10) vocabulary = 0;
+
+
+    /* -------- FINAL SCORE -------- */
+    let score = 0;
+    
+    // "give marks 0 for .."
     if (summaryText.includes("..")) {
         score = 0;
         content = 0;
@@ -242,10 +265,9 @@ export const submitSummarizeWrittenAttempt = async (req, res) => {
         vocabulary = 0;
         formScore = 0;
     } else {
-        // Recalculate if not zeroed out
         score = content + grammar + vocabulary + formScore;
     }
-
+    
     const readingScore = score / 2;
     const writingScore = score / 2;
 

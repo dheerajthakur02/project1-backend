@@ -155,72 +155,93 @@ export const submitEssayAttempt = async (req, res) => {
     else if ((wordCount >= 120 && wordCount < 200) || (wordCount > 300 && wordCount <= 380)) form = 1;
     else form = 0;
 
-    // B. CONTENT (Max 2) - Keyword Matching
+    // C. DEVELOPMENT (Max 2) - Formerly 'Structure'
+    const transitionWords = ["furthermore", "moreover", "however", "consequently", "therefore", "in conclusion", "firstly", "secondly", "additionally", "nevertheless", "on the other hand", "for example"];
+    const foundTransitions = transitionWords.filter(word => essayText.toLowerCase().includes(word)).length;
+    const paragraphs = essayText.split('\n').filter(p => p.trim().length > 0).length;
+    
+    let structure = 0;
+    if (foundTransitions >= 3 && paragraphs >= 2) structure = 2;
+    else if (foundTransitions >= 1 || paragraphs >= 2) structure = 1;
+
+    // B. CONTENT (Max 6) - User Logic: 0, 2, 3, 6
+    /*
+        6– Full Marks: Completely answers the question, clear position, well-developed ideas, fully on topic, within word limit (200-300).
+        3 – Partial: Mostly on topic, some ideas underdeveloped, slightly unclear argument.
+        2 – Weak: Limited relevance, very short or poorly developed, ideas unclear.
+        0 – No Content: Off topic, too short (very low word count), memorized template.
+    */
     let content = 0;
     const lowerEssay = essayText.toLowerCase();
     
     // Check keyword matches if available
     if (keywords && keywords.length > 0) {
         const matches = keywords.filter(k => lowerEssay.includes(k.toLowerCase())).length;
-        if (matches >= 4) content = 2;
-        else if (matches >= 2) content = 1;
-        else content = 0;
+
+        if (matches >= 4 && wordCount >= 200 && wordCount <= 300) {
+             // High relevance + Correct Length -> 6
+             content = 6;
+        } else if (matches >= 3 && wordCount >= 120) {
+             // Good relevance + Decent Length -> 3
+             content = 3;
+        } else if (matches >= 1 && wordCount >= 50) {
+             // Weak relevance -> 2
+             content = 2;
+        } else {
+             // No matches or too short -> 0
+             content = 0;
+        }
     } else {
-        // Fallback if no keywords defined: Give benefit of doubt if length is sufficient
-        if (wordCount >= 200) content = 2;
-        else if (wordCount >= 100) content = 1;
+        // Fallback Logic (No keywords defined on question)
+        // Rely on Length & Structure (Development) as proxy for quality
+        if (wordCount >= 200 && wordCount <= 300 && structure === 2) {
+            content = 6;
+        } else if (wordCount >= 120 && structure >= 1) {
+            content = 3;
+        } else if (wordCount >= 50) {
+            content = 2;
+        } else {
+            content = 0;
+        }
     }
 
-    // C. DEVELOPMENT (Max 2) - Formerly 'Structure'
-    // Updated to be same as CONTENT as per user requestame as CONTENT as per user request
-    const transitionWords = ["furthermore", "moreover", "however", "consequently", "therefore", "in conclusion", "firstly", "secondly", "additionally", "nevertheless"];
-    const foundTransitions = transitionWords.filter(word => essayText.toLowerCase().includes(word)).length;
-    const paragraphs = essayText.split('\n').filter(p => p.trim().length > 0).length;
-    
-    // Original Logic preserved for "issues" tracking, but score is overridden
-    let structure = form; // User request: "form is calculated as Development"
-
-    // D. VOCABULARY (Max 2) - Lexical Range (Unique words ratio)
+    // D. VOCABULARY (Max 2) - Lexical Range
     const uniqueWords = new Set(words.map(w => w.toLowerCase())).size;
     const lexicalRange = uniqueWords / wordCount;
     let vocabulary = 0;
-    if (lexicalRange > 0.5 && wordCount > 200) vocabulary = 2;
+    if (lexicalRange > 0.4 && wordCount > 100) vocabulary = 2;
     else if (lexicalRange > 0.3) vocabulary = 1;
 
-    // E. GRAMMAR (Max 2) - Basic check (Capital letters at start, periods at end)
+    // E. GRAMMAR (Max 2)
     const sentences = essayText.split(/[.!?]+/).filter(s => s.trim().length > 0);
     const correctSentences = sentences.filter(s => /^[A-Z]/.test(s.trim())).length;
     let grammar = 0;
-    if (correctSentences / sentences.length > 0.8) grammar = 2;
-    else if (correctSentences / sentences.length > 0.5) grammar = 1;
-
-    // F. SPELLING (Max 2)
-    // Logic: 0 errors -> 2, 1 error -> 1, >=2 errors -> 0
-    // Currently using simulated error count.
-    
-    // For now, increasing the simulation range slightly to test the logic (0 to 4 errors)
-    let misspelledCount = Math.floor(Math.random() * 5); 
-
-    let spelling = 2; // Default full marks
-    if (misspelledCount === 1) {
-        spelling = 1;
-    } else if (misspelledCount >= 2) {
-        spelling = 0;
+    if (sentences.length > 0) {
+        if (correctSentences / sentences.length > 0.8) grammar = 2;
+        else if (correctSentences / sentences.length > 0.5) grammar = 1;
     }
 
-    // G. GENERAL LINGUISTIC RANGE (Max 2) - Formerly 'General'
-    let general = form; // User request: "form is calculated as... General Linguistic Range"
+    // F. SPELLING (Max 2)
+    // Simulated for now
+    let misspelledCount = Math.floor(Math.random() * 5); 
+    let spelling = 2;
+    if (misspelledCount === 1) spelling = 1;
+    else if (misspelledCount >= 2) spelling = 0;
+
+    // G. GENERAL LINGUISTIC RANGE (Max 2)
+    let general = 0;
+    if (content >= 3 && structure >= 1 && vocabulary >= 1) general = 2;
+    else if (content >= 2) general = 1;
 
 
     /* ---------- FINAL TOTALS ---------- */
 
-    // Total Score (PTE max is usually 15 for essay)
-    // Total Score (Adjusted max since Content is now max 2 instead of 3)
-    const totalMax = 14;
+    // Total Score (PTE max is usually 15 for essay, but we sum components)
+    // Content (6) + Form (2) + Development/Structure (2) + Vocabulary (2) + Grammar (2) + Spelling (2) + General (2) = 18 Max
+    const totalMax = 18;
     const rawScore = content + grammar + spelling + vocabulary + form + structure + general;
     
     // Scale it to a 0-90 scale (PTE standard)
-    // Calculation: (Earned / Max) * 90
     const writingScore = Number(((rawScore / totalMax) * 90).toFixed(0));
 
     const attempt = await EssayAttempt.create({
@@ -230,7 +251,7 @@ export const submitEssayAttempt = async (req, res) => {
       wordCount,
       timeTaken,
       score: rawScore,
-      writingScore, // The 0-90 score
+      writingScore, 
       content,
       grammar,
       spelling,
