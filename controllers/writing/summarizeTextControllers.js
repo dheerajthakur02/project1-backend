@@ -190,7 +190,7 @@ export const submitSummarizeWrittenAttempt = async (req, res) => {
   try {
     const { questionId, summaryText, timeTaken, userId } = req.body;
 
-    // 1. Fetch Question to get source text for Keyword Matching
+    // 1. Fetch Question
     const question = await SummarizeTextQuestion.findById(questionId);
     if (!question) {
         return res.status(404).json({ success: false, message: "Question not found" });
@@ -199,8 +199,7 @@ export const submitSummarizeWrittenAttempt = async (req, res) => {
     const words = summaryText.trim().split(/\s+/).filter(w => w.length > 0);
     const wordCount = words.length;
 
-    /* -------- FORM RULE -------- */
-    // Logic: 50-70 words -> 2 marks, 40-49 words -> 1 mark, else 0
+    /* -------- 1. FORM RULE (Original Logic) -------- */
     let formScore = 0;
     if (wordCount >= 50 && wordCount <= 70) {
         formScore = 2;
@@ -208,44 +207,31 @@ export const submitSummarizeWrittenAttempt = async (req, res) => {
         formScore = 1;
     }
     
-    // Check for double dots ".."
-    if (summaryText.includes("..")) {
-        formScore = 0;
-    }
-
-    /* -------- CONTENT SCORING LOGIC (New Request) -------- */
+    /* -------- 2. CONTENT SCORING LOGIC (Original Logic) -------- */
     let content = 0;
-    
-    // 1. Extract Keywords from Question (Simple Stopword Removal)
     const stopwords = ["a", "an", "the", "in", "on", "at", "to", "for", "of", "and", "but", "so", "is", "are", "was", "were", "this", "that"];
     const questionWords = question.paragraph.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").split(/\s+/);
     const keywords = questionWords.filter(w => w.length > 3 && !stopwords.includes(w));
     const uniqueKeywords = [...new Set(keywords)];
 
-    // 2. Count Matches in Student Answer
     const studentLower = summaryText.toLowerCase();
     let matches = 0;
     uniqueKeywords.forEach(k => {
         if (studentLower.includes(k)) matches++;
     });
 
-    // 3. Logic: Increase Score with Length + Keyword Check
-    // If NO keywords matched -> 0 Content (Irrelevant)
     if (matches === 0) {
         content = 0;
     } else {
-        // Award score based on length tiers (assuming minimal relevance met)
-        // User asked: "increase marks of content with increasing length"
-        if (wordCount >= 55) content = 4;       // Long -> High Score
-        else if (wordCount >= 40) content = 3;  // Medium-Long
-        else if (wordCount >= 25) content = 2;  // Medium
-        else if (wordCount >= 5) content = 1;   // Short
-        else content = 0;                       // Too short
+        if (wordCount >= 55) content = 4;
+        else if (wordCount >= 40) content = 3;
+        else if (wordCount >= 25) content = 2;
+        else if (wordCount >= 5) content = 1;
+        else content = 0;
     }
 
-    /* -------- GRAMMAR & VOCAB -------- */
+    /* -------- 3. GRAMMAR & VOCAB (Original Logic) -------- */
     let grammar = 2;
-    // Simple checks: Period at end, Capital at start
     if (!/^[A-Z]/.test(summaryText.trim())) grammar -= 1;
     if (!/[.!?]$/.test(summaryText.trim())) grammar -= 1;
     if (grammar < 0) grammar = 0;
@@ -253,21 +239,22 @@ export const submitSummarizeWrittenAttempt = async (req, res) => {
     let vocabulary = 2; 
     if (wordCount < 10) vocabulary = 0;
 
+    /* -------- 4. THE ZERO SCORE OVERRIDE (New Dot Logic) -------- */
+    let score = content + grammar + vocabulary + formScore;
 
-    /* -------- FINAL SCORE -------- */
-    let score = 0;
-    
-    // "give marks 0 for .."
-    if (summaryText.includes("..")) {
+    // This counts how many times "." appears anywhere in the text
+    const dotCount = (summaryText.match(/\./g) || []).length;
+
+    // If there are 2 or more dots (periods) anywhere in the whole text, everything becomes 0
+    if (dotCount >= 2) {
         score = 0;
         content = 0;
         grammar = 0;
         vocabulary = 0;
         formScore = 0;
-    } else {
-        score = content + grammar + vocabulary + formScore;
     }
-    
+
+    /* -------- 5. FINAL CALCULATION & SAVE -------- */
     const readingScore = score / 2;
     const writingScore = score / 2;
 
