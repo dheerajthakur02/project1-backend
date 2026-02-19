@@ -50,7 +50,7 @@ const ImageAttemptSchema = new mongoose.Schema(
         word: String,
         status: {
           type: String,
-          enum: ['correct', 'incorrect']
+             enum: ['correct', 'incorrect', 'missing', 'extra_meaningful', 'extra_filler'], // <--- ADDED THESE!
         }
       }
     ]

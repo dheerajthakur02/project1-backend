@@ -400,10 +400,6 @@ export const createRetellAttempt = async (req, res) => {
     const studentWords = studentText.split(/\s+/).filter(w => w.length > 0);
     const studentWordCount = studentWords.length;
 
-    console.log("Original Transcript:", originalText);
-    console.log("Keywords Extracted:", uniqueKeywords);
-    console.log("Student Transcript:", studentText);
-    console.log("Student Word Count:", studentWordCount);
 
     // Count Keyword Matches
     let matchedKeywords = 0;

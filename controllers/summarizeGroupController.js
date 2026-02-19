@@ -280,156 +280,185 @@ export const deleteQuestion = async (req, res) => {
   res.json({ message: "Deleted" });
 };
 
+// Helper function to define common stop words
+const getStopWords = () => new Set([
+    'a', 'an', 'the', 'is', 'am', 'are', 'was', 'as', 'at', 'be', 'by', 'for', 'from', 'in', 'into', 'of', 'on', 'to', 'with',
+    'and', 'or', 'but', 'not', 'no', 'this', 'that', 'these', 'those', 'it', 'its', 'he', 'she', 'they', 'we', 'you', 'your',
+    'his', 'her', 'their', 'our', 'my', 'me', 'him', 'us', 'them', 'who', 'what', 'where', 'when', 'why', 'how', 'which', 'whom',
+    'if', 'then', 'else', 'up', 'down', 'out', 'off', 'on', 'about', 'above', 'below', 'between', 'before', 'after', 'during',
+    'through', 'under', 'over', 'around', 'each', 'every', 'some', 'any', 'all', 'few', 'many', 'more', 'most', 'other', 'such',
+    'only', 'own', 'same', 'so', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don', 'should', 'now', 'there', 'here',
+    'also', 'much', 'about', 'against', 'among', 'amongst', 'cant', 'could', 'had', 'has', 'have', 'like', 'must', 'per', 'than',
+    'until', 'upon', 'would', 'shall', 'may', 'might', 'must', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
+    'nine', 'ten', 'zero', 'said', 'say', 'says'
+]);
+
+
 export const createSummarizeGroupAttempt = async (req, res) => {
-  try {
-    let { questionId, userId, transcript } = req.body;
+    try {
+        let { questionId, userId, transcript } = req.body;
 
-    /* ---------------- VALIDATE & CAST userId ---------------- */
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: "userId is required"
-      });
+        /* ---------------- VALIDATE & CAST userId ---------------- */
+        if (!userId) return res.status(400).json({ success: false, message: "userId is required" });
+        if (typeof userId !== 'string' || !mongoose.Types.ObjectId.isValid(userId)) return res.status(400).json({ success: false, message: "Invalid userId format" });
+        userId = new mongoose.Types.ObjectId(userId);
+
+        /* ---------------- VALIDATE & CAST questionId ---------------- */
+        if (!questionId) return res.status(400).json({ success: false, message: "questionId is required" });
+        if (typeof questionId !== 'string' || !mongoose.Types.ObjectId.isValid(questionId)) return res.status(400).json({ success: false, message: "Invalid questionId format" });
+        questionId = new mongoose.Types.ObjectId(questionId);
+
+        /* ---------------- VALIDATE AUDIO ---------------- */
+        if (!req.file) return res.status(400).json({ success: false, message: "Audio recording is required" });
+
+        /* ---------------- FETCH QUESTION ---------------- */
+        const question = await SummarizeGroupQuestion.findById(questionId);
+        if (!question) return res.status(404).json({ success: false, message: "Question not found" });
+
+        const referenceText = question.answer;
+        if (!referenceText) return res.status(500).json({ success: false, message: "Question reference answer is missing" });
+
+        /* ---------------- NORMALIZATION ---------------- */
+        const cleanText = (text) =>
+            (text || "")
+                .toLowerCase()
+                .replace(/[.,\/#!$%^&*;:{}=\-_`~()]/g, "")
+                .trim();
+
+        const studentClean = cleanText(transcript);
+        const referenceClean = cleanText(referenceText);
+
+        const studentWordsRaw = studentClean.split(/\s+/).filter(Boolean);
+        const referenceWordsRaw = referenceClean.split(/\s+/).filter(Boolean);
+
+        const stopWords = getStopWords();
+
+        // Filter out stop words for keyword-based matching
+        const referenceKeywords = referenceWordsRaw.filter(word => word.length > 2 && !stopWords.has(word));
+        const studentKeywords = studentWordsRaw.filter(word => word.length > 2 && !stopWords.has(word));
+
+        /* ---------------- ADVANCED WORD & KEYWORD ANALYSIS ---------------- */
+        const wordAnalysis = []; // Stores detailed word-by-word feedback for UI
+        let matchedKeywordsCount = 0; // For Content Score
+        const matchedReferenceWordsIndices = new Set(); // To track which reference words were matched
+        const usedStudentWordsIndices = new Set(); // To track which student words were used for matching
+
+        // Phase 1: Direct Word-by-Word Matching (with window) for detailed feedback
+        referenceWordsRaw.forEach((refWord, refIndex) => {
+            let foundMatch = false;
+            // Search window: 3 words before, 5 words after current reference word index
+            const searchStart = Math.max(0, refIndex - 3);
+            const searchEnd = Math.min(studentWordsRaw.length, refIndex + 5);
+
+            for (let i = searchStart; i < searchEnd; i++) {
+                if (usedStudentWordsIndices.has(i)) continue; // Skip already used student words
+
+                const studentWord = studentWordsRaw[i];
+                if (studentWord && stringSimilarity.compareTwoStrings(refWord, studentWord) > 0.8) {
+                    wordAnalysis.push({ word: refWord, status: "correct", studentMatch: studentWord, matchedByIndex: i });
+                    matchedReferenceWordsIndices.add(refIndex);
+                    usedStudentWordsIndices.add(i);
+                    foundMatch = true;
+                    break;
+                }
+            }
+            if (!foundMatch) {
+                wordAnalysis.push({ word: refWord, status: "missing" });
+            }
+        });
+
+        // Phase 2: Keyword Coverage for Content Score (less strict, presence-based)
+        // This ensures main ideas are captured even if exact phrasing is different.
+        const tempStudentKeywords = [...studentKeywords]; // Copy to modify
+        referenceKeywords.forEach(refKeyword => {
+            let keywordFound = false;
+            for (let i = 0; i < tempStudentKeywords.length; i++) {
+                if (tempStudentKeywords[i] && stringSimilarity.compareTwoStrings(refKeyword, tempStudentKeywords[i]) > 0.7) { // Lower similarity for keyword presence
+                    matchedKeywordsCount++;
+                    tempStudentKeywords[i] = null; // Mark as used
+                    keywordFound = true;
+                    break;
+                }
+            }
+        });
+
+        // Phase 3: Identify 'extra' words in student's transcript for UI feedback
+        // This can be simplified or made more robust if needed.
+        // For simplicity, we'll just mark words not matched in Phase 1 as extra.
+        studentWordsRaw.forEach((studentWord, index) => {
+            if (!usedStudentWordsIndices.has(index)) {
+                // Check if this extra word is a meaningful keyword or just filler
+                const isMeaningfulExtra = studentKeywords.includes(studentWord); // A rough check
+                wordAnalysis.push({ word: studentWord, status: isMeaningfulExtra ? "extra_meaningful" : "extra_filler", originalIndex: index });
+            }
+        });
+
+
+        /* ---------------- SCORING (Content, Pronunciation, Fluency - Max 5 each) ---------------- */
+        const totalReferenceKeywords = referenceKeywords.length || 1;
+        const totalStudentWordsInTranscript = studentWordsRaw.length || 1; // Used for fluency comparison
+
+        // --- CONTENT SCORE (max 5) ---
+        // Now based on keyword coverage, which is more forgiving for summaries
+        const keywordCoverageRatio = matchedKeywordsCount / totalReferenceKeywords;
+        let contentScore = 0;
+        if (keywordCoverageRatio >= 0.9) contentScore = 6;
+        else if (keywordCoverageRatio >= 0.75) contentScore = 5;
+        else if (keywordCoverageRatio >= 0.5) contentScore = 4;
+        else if (keywordCoverageRatio >= 0.3) contentScore = 3;
+        else if (keywordCoverageRatio > 0) contentScore = 1;
+
+        // --- PRONUNCIATION SCORE (max 5) ---
+        // Use overall transcript similarity, as it correlates with clarity.
+        const overallTranscriptSimilarity = stringSimilarity.compareTwoStrings(referenceClean, studentClean);
+        let pronunciationScore = overallTranscriptSimilarity * 5;
+        pronunciationScore = Math.max(0, Math.min(5, pronunciationScore));
+
+        // --- FLUENCY SCORE (max 5) ---
+        // Compare the length of the student's *actual* spoken words (minus stop words)
+        // to the significant words in the reference.
+        const effectiveStudentWordsCount = studentKeywords.length;
+        const effectiveReferenceWordsCount = referenceKeywords.length;
+
+        const lengthRatio = effectiveReferenceWordsCount > 0 ? effectiveStudentWordsCount / effectiveReferenceWordsCount : 0;
+        let fluencyScore = 0;
+        if (lengthRatio >= 0.8 && lengthRatio <= 1.2) fluencyScore = 5;
+        else if (lengthRatio >= 0.6 && lengthRatio <= 1.4) fluencyScore = 4;
+        else if (lengthRatio >= 0.4 && lengthRatio <= 1.6) fluencyScore = 3;
+        else fluencyScore = 2;
+        fluencyScore = Math.max(0, Math.min(5, fluencyScore));
+
+        // --- TOTAL SCORE ---
+        const totalScore = contentScore + pronunciationScore + fluencyScore;
+
+        /* ---------------- SAVE ATTEMPT ---------------- */
+        const attempt = await SummarizeGroupAttempt.create({
+            questionId,
+            userId,
+            studentAudio: {
+                public_id: req.file.filename,
+                url: req.file.path
+            },
+            transcript: transcript || "",
+            score: parseFloat(totalScore.toFixed(1)),
+            content: parseFloat(contentScore.toFixed(1)),
+            pronunciation: parseFloat(pronunciationScore.toFixed(1)),
+            fluency: parseFloat(fluencyScore.toFixed(1)),
+            wordAnalysis // Detailed analysis for UI feedback
+        });
+
+        return res.status(201).json({
+            success: true,
+            data: attempt
+        });
+
+    } catch (error) {
+        console.error("CREATE ATTEMPT ERROR:", error);
+        return res.status(500).json({
+            success: false,
+            message: error.message || "An internal server error occurred"
+        });
     }
-
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid userId"
-      });
-    }
-
-    userId = new mongoose.Types.ObjectId(userId);
-
-    /* ---------------- VALIDATE & CAST questionId ---------------- */
-    if (!questionId || !mongoose.Types.ObjectId.isValid(questionId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid questionId"
-      });
-    }
-
-    questionId = new mongoose.Types.ObjectId(questionId);
-
-    /* ---------------- VALIDATE AUDIO ---------------- */
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "Audio recording is required"
-      });
-    }
-
-    /* ---------------- FETCH QUESTION ---------------- */
-    const question = await SummarizeGroupQuestion.findById(questionId);
-    if (!question) {
-      return res.status(404).json({
-        success: false,
-        message: "Question not found"
-      });
-    }
-
-    const originalText = question.title;
-    if (!originalText) {
-      return res.status(500).json({
-        success: false,
-        message: "Question text is missing"
-      });
-    }
-
-    /* ---------------- NORMALIZATION ---------------- */
-    const clean = (text) =>
-      (text || "")
-        .toLowerCase()
-        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")
-        .trim();
-
-    const originalClean = clean(question.answer);
-    const studentClean = clean(transcript);
-
-    const originalWords = originalClean.split(/\s+/).filter(Boolean);
-    const studentWords = studentClean.split(/\s+/).filter(Boolean);
-
-    /* ---------------- WORD ANALYSIS ---------------- */
-    const wordAnalysis = [];
-    let matchedCount = 0;
-
-    if (studentWords.length === 0) {
-      originalWords.forEach(word =>
-        wordAnalysis.push({ word, status: "missing" })
-      );
-    } else {
-      originalWords.forEach((word, index) => {
-        const studentWord = studentWords[index];
-
-        if (!studentWord) {
-          wordAnalysis.push({ word, status: "missing" });
-        } else if (word === studentWord) {
-          wordAnalysis.push({ word, status: "correct" });
-          matchedCount++;
-        } else {
-          const similarity = stringSimilarity.compareTwoStrings(word, studentWord);
-          if (similarity > 0.8) {
-            wordAnalysis.push({ word: studentWord, status: "correct" });
-            matchedCount++;
-          } else {
-            wordAnalysis.push({ word: studentWord, status: "incorrect" });
-          }
-        }
-      });
-    }
-
-    /* ---------------- SCORING (5 + 5 + 5 = 15) ---------------- */
-    const totalWords = originalWords.length || 1;
-    const contentPercentage = (matchedCount / totalWords) * 100;
-
-    // Content (max 5)
-    let contentScore = 0;
-    if (contentPercentage === 100) contentScore = 6;
-    else if (contentPercentage >= 70) contentScore = 4;
-    else if (contentPercentage >= 40) contentScore = 3;
-    else if (contentPercentage > 0) contentScore = 1;
-
-    // Pronunciation (max 5)
-    const pronunciationScore =
-      stringSimilarity.compareTwoStrings(originalClean, studentClean) * 5;
-
-    // Fluency (max 5)
-    const sLen = studentWords.length || 1;
-    const fluencyScore =
-      (Math.min(sLen, totalWords) / Math.max(sLen, totalWords)) * 5;
-
-    // Total (max 15)
-    const totalScore =
-      contentScore + pronunciationScore + fluencyScore;
-
-    /* ---------------- SAVE ATTEMPT ---------------- */
-    const attempt = await SummarizeGroupAttempt.create({
-      questionId,
-      userId,
-      studentAudio: {
-        public_id: req.file.filename,
-        url: req.file.path
-      },
-      transcript: transcript || "",
-      score: totalScore.toFixed(1),
-      content: contentScore.toFixed(1),
-      pronunciation: pronunciationScore.toFixed(1),
-      fluency: fluencyScore.toFixed(1),
-      wordAnalysis
-    });
-
-    return res.status(201).json({
-      success: true,
-      data: attempt
-    });
-
-  } catch (error) {
-    console.error("CREATE ATTEMPT ERROR:", error);
-    return res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
 };
 
 export const saveAttempt = async (req, res) => {

@@ -71,7 +71,7 @@ const summarizeGroupAttemptSchema = new mongoose.Schema(
         word: String,
         status: {
           type: String,
-          enum: ['correct', 'incorrect','missing']
+          enum: ['correct', 'incorrect', 'missing', 'extra_meaningful', 'extra_filler'], // <--- ADDED THESE!
         }
       }
     ]

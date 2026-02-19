@@ -327,67 +327,235 @@ export const deleteRespondSituationQuestion = async (req, res) => {
 /* ================================
    CREATE ATTEMPT
 ================================ */
-export const createRespondSituationAttempt = async (req, res) => {
-  try {
-    let { questionId, userId, transcript } = req.body;
 
-    if (!req.file) return res.status(400).json({ message: "Audio is required" });
+// Helper function to define common stop words
+const getStopWords = () => new Set([
+    'a', 'an', 'the', 'is', 'am', 'are', 'was', 'as', 'at', 'be', 'by', 'for', 'from', 'in', 'into', 'of', 'on', 'to', 'with',
+    'and', 'or', 'but', 'not', 'no', 'this', 'that', 'these', 'those', 'it', 'its', 'he', 'she', 'they', 'we', 'you', 'your',
+    'his', 'her', 'their', 'our', 'my', 'me', 'him', 'us', 'them', 'who', 'what', 'where', 'when', 'why', 'how', 'which', 'whom',
+    'if', 'then', 'else', 'up', 'down', 'out', 'off', 'on', 'about', 'above', 'below', 'between', 'before', 'after', 'during',
+    'through', 'under', 'over', 'around', 'each', 'every', 'some', 'any', 'all', 'few', 'many', 'more', 'most', 'other', 'such',
+    'only', 'own', 'same', 'so', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don', 'should', 'now', 'there', 'here',
+    'also', 'much', 'about', 'against', 'among', 'amongst', 'cant', 'could', 'had', 'has', 'have', 'like', 'must', 'per', 'than',
+    'until', 'upon', 'would', 'shall', 'may', 'might', 'must', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
+    'nine', 'ten', 'zero', 'said', 'say', 'says'
+]);
 
-    userId = new mongoose.Types.ObjectId(userId);
-    questionId = new mongoose.Types.ObjectId(questionId);
-
-    const question = await RespondSituationQuestion.findById(questionId);
-    if (!question) return res.status(404).json({ message: "Question not found" });
-
-    const clean = (text) => text.toLowerCase().replace(/[^\w\s]/g, "").trim();
-
-    const originalWords = clean(question.answer).split(/\s+/);
-    const studentWords = clean(transcript).split(/\s+/);
-
-    let matched = 0;
-    const wordAnalysis = [];
-
-    originalWords.forEach((word, i) => {
-      const sWord = studentWords[i];
-      if (!sWord) {
-        wordAnalysis.push({ word, status: "missing" });
-      } else if (word === sWord) {
-        matched++;
-        wordAnalysis.push({ word, status: "correct" });
-      } else {
-        const sim = stringSimilarity.compareTwoStrings(word, sWord);
-        wordAnalysis.push({ word: sWord, status: sim > 0.8 ? "correct" : "incorrect" });
-        if (sim > 0.8) matched++;
-      }
-    });
-
-    const content = (matched / originalWords.length) * 5;
-    const pronunciation = stringSimilarity.compareTwoStrings(clean(question.transcript || ""), clean(transcript)) * 5;
-    const fluency = (Math.min(studentWords.length, originalWords.length) / Math.max(studentWords.length, originalWords.length)) * 5;
-    const score = content + pronunciation + fluency;
-
-    const audioUpload = await cloudinary.uploader.upload(req.file.path, { resource_type: "video" });
-
-    const attempt = await RespondSituationAttempt.create({
-      questionId,
-      userId,
-      studentAudio: { url: audioUpload.secure_url, public_id: audioUpload.public_id },
-      transcript,
-      score: score.toFixed(1),
-      content: content.toFixed(1),
-      pronunciation: pronunciation.toFixed(1),
-      fluency: fluency.toFixed(1),
-      wordAnalysis
-    });
-
-    res.status(201).json({ success: true, data: attempt });
-
-  } catch (error) {
-    console.error("CREATE RESPOND SITUATION ATTEMPT ERROR:", error);
-    res.status(500).json({ success: false, message: error.message });
-  }
+// Helper to generate n-grams from a list of words
+const generateNGrams = (words, n) => {
+    const ngrams = [];
+    if (words.length < n) return ngrams;
+    for (let i = 0; i <= words.length - n; i++) {
+        ngrams.push(words.slice(i, i + n).join(' '));
+    }
+    return ngrams;
 };
 
+export const createRespondSituationAttempt = async (req, res) => {
+    try {
+        let { questionId, userId, transcript } = req.body;
+
+        if (!req.file) return res.status(400).json({ message: "Audio is required" });
+
+        // Validate and cast userId
+        if (!userId || typeof userId !== 'string' || !mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({ success: false, message: "Invalid userId" });
+        }
+        userId = new mongoose.Types.ObjectId(userId);
+
+        // Validate and cast questionId
+        if (!questionId || typeof questionId !== 'string' || !mongoose.Types.ObjectId.isValid(questionId)) {
+            return res.status(400).json({ success: false, message: "Invalid questionId" });
+        }
+        questionId = new mongoose.Types.ObjectId(questionId);
+
+        const question = await RespondSituationQuestion.findById(questionId);
+        if (!question) return res.status(404).json({ message: "Question not found" });
+
+        const referenceText = question.answer;
+        const referenceTranscriptForPronunciation = question.transcript || question.answer; // Use `transcript` if available, else `answer`
+
+        /* ---------------- NORMALIZATION ---------------- */
+        const cleanText = (text) =>
+            (text || "")
+                .toLowerCase()
+                .replace(/[.,\/#!$%^&\*;:{}=\-_`~()]/g, "")
+                .replace(/\s{2,}/g, ' ') // Replace multiple spaces with a single space
+                .trim();
+
+        const studentClean = cleanText(transcript);
+        const referenceClean = cleanText(referenceText);
+        const pronunciationReferenceClean = cleanText(referenceTranscriptForPronunciation);
+
+
+        const studentWordsRaw = studentClean.split(/\s+/).filter(Boolean);
+        const referenceWordsRaw = referenceClean.split(/\s+/).filter(Boolean);
+
+        const stopWords = getStopWords();
+
+        // Content Words (filtered stop words and short words) for Content Score
+        const referenceContentWords = referenceWordsRaw.filter(word => word.length > 2 && !stopWords.has(word));
+        const studentContentWords = studentWordsRaw.filter(word => word.length > 2 && !stopWords.has(word));
+
+        /* ---------------- ADVANCED WORD & KEYWORD ANALYSIS ---------------- */
+        const wordAnalysis = []; // Stores detailed word-by-word feedback for UI
+        const usedStudentWordsIndicesForWordAnalysis = new Set(); // Track student words used for Phase 1 UI feedback
+
+        // --- Phase 1: Detailed Word-by-Word Matching (with window) for UI Feedback ---
+        // This generates 'correct', 'missing' statuses for direct visual feedback.
+        // It's lenient to give visual cues even for partial matches.
+        referenceWordsRaw.forEach((refWord, refIndex) => {
+            let foundMatch = false;
+            // Search window: 3 words before, 5 words after current reference word index
+            const searchStart = Math.max(0, refIndex - 3);
+            const searchEnd = Math.min(studentWordsRaw.length, refIndex + 5);
+
+            for (let i = searchStart; i < searchEnd; i++) {
+                if (usedStudentWordsIndicesForWordAnalysis.has(i)) continue; // Skip already used student words
+
+                const studentWord = studentWordsRaw[i];
+                // Lower similarity threshold for UI feedback to be more forgiving
+                if (studentWord && stringSimilarity.compareTwoStrings(refWord, studentWord) > 0.6) {
+                    wordAnalysis.push({ word: refWord, status: "correct", studentMatch: studentWord, matchedByIndex: i });
+                    usedStudentWordsIndicesForWordAnalysis.add(i);
+                    foundMatch = true;
+                    break;
+                }
+            }
+            if (!foundMatch) {
+                wordAnalysis.push({ word: refWord, status: "missing" });
+            }
+        });
+
+        // --- Phase 2: N-Gram / Phrase Matching for a more robust Content Score ---
+        // Identify key multi-word phrases and individual keywords from the reference answer.
+        const reference3Grams = generateNGrams(referenceContentWords, 3);
+        const reference2Grams = generateNGrams(referenceContentWords, 2);
+        const uniqueReferenceKeywords = [...new Set(referenceContentWords)]; // Ensure unique single words
+
+        const allReferenceContentUnits = [
+            ...reference3Grams,
+            ...reference2Grams,
+            ...uniqueReferenceKeywords
+        ];
+
+        let contentUnitsMatched = new Set(); // To store matched phrases/words to avoid double counting
+        const tempStudentContentWords = [...studentContentWords]; // Copy for mutable usage
+
+        // Function to find matches for a given content unit (n-gram or single word)
+        const findAndMarkMatch = (unit, studentWordsArray, similarityThreshold) => {
+            const unitWords = unit.split(' ');
+            if (unitWords.length === 1) { // Single word matching
+                 for (let i = 0; i < studentWordsArray.length; i++) {
+                    if (studentWordsArray[i] && stringSimilarity.compareTwoStrings(unit, studentWordsArray[i]) > similarityThreshold) {
+                        studentWordsArray[i] = null; // Mark as used
+                        return true;
+                    }
+                }
+            } else { // Multi-word n-gram matching
+                // Simple substring check for exact match
+                const studentText = studentWordsArray.filter(w => w !== null).join(' ');
+                if (studentText.includes(unit)) {
+                    return true;
+                }
+                // Fuzzy N-gram match: Check if *most* words in the unit are present
+                let matchedWordsInUnit = 0;
+                unitWords.forEach(word => {
+                    if (studentWordsArray.some(sw => sw && stringSimilarity.compareTwoStrings(word, sw) > 0.7)) {
+                        matchedWordsInUnit++;
+                    }
+                });
+                if (matchedWordsInUnit >= Math.floor(unitWords.length * 0.7)) { // 70% of words in unit matched
+                    return true;
+                }
+            }
+            return false;
+        };
+
+
+        // Iterate through reference content units and find matches in student's transcript
+        allReferenceContentUnits.forEach(unit => {
+            if (contentUnitsMatched.has(unit)) return; // Already matched this unit (e.g., as part of a larger n-gram)
+
+            // Attempt to match the unit
+            if (findAndMarkMatch(unit, tempStudentContentWords, 0.7)) { // Use a reasonable threshold for content unit matching
+                contentUnitsMatched.add(unit);
+            }
+        });
+
+
+        // --- Phase 3: Identify 'extra' words for UI feedback ---
+        // These are words in the student's raw transcript that weren't matched in Phase 1
+        studentWordsRaw.forEach((studentWord, index) => {
+            if (!usedStudentWordsIndicesForWordAnalysis.has(index)) {
+                // Check if this extra word is a meaningful keyword or just filler
+                const isMeaningfulExtra = studentContentWords.includes(studentWord); // A rough check
+                wordAnalysis.push({ word: studentWord, status: isMeaningfulExtra ? "extra_meaningful" : "extra_filler", originalIndex: index });
+            }
+        });
+
+        /* ---------------- SCORING (Content, Pronunciation, Fluency - Max 5 each) ---------------- */
+        const totalContentUnits = allReferenceContentUnits.length || 1;
+
+        // --- CONTENT SCORE (max 5) ---
+        const contentCoverageRatio = contentUnitsMatched.size / totalContentUnits;
+        let contentScore = 0;
+        if (contentCoverageRatio >= 0.9) contentScore = 5;
+        else if (contentCoverageRatio >= 0.75) contentScore = 4;
+        else if (contentCoverageRatio >= 0.5) contentScore = 3;
+        else if (contentCoverageRatio >= 0.3) contentScore = 2;
+        else if (contentCoverageRatio > 0) contentScore = 1;
+
+
+        // --- PRONUNCIATION SCORE (max 5) ---
+        // Use `question.transcript` for pronunciation comparison if available and clean,
+        // otherwise default to `question.answer`.
+        const pronunciationSimilarity = stringSimilarity.compareTwoStrings(pronunciationReferenceClean, studentClean);
+        let pronunciationScore = pronunciationSimilarity * 5;
+        pronunciationScore = Math.max(0, Math.min(5, pronunciationScore));
+
+        // --- FLUENCY SCORE (max 5) ---
+        // Compare the length of the student's *actual* spoken words (all raw words)
+        // to the *raw* reference words, allowing for some flexibility.
+        const totalReferenceWordsCount = referenceWordsRaw.length || 1;
+        const totalStudentWordsSpoken = studentWordsRaw.length;
+
+        const lengthRatio = totalReferenceWordsCount > 0 ? totalStudentWordsSpoken / totalReferenceWordsCount : 0;
+        let fluencyScore = 0;
+        if (lengthRatio >= 0.8 && lengthRatio <= 1.2) fluencyScore = 5; // Allowing +/- 20% word count variation
+        else if (lengthRatio >= 0.6 && lengthRatio <= 1.4) fluencyScore = 4;
+        else if (lengthRatio >= 0.4 && lengthRatio <= 1.6) fluencyScore = 3;
+        else fluencyScore = 2;
+        fluencyScore = Math.max(0, Math.min(5, fluencyScore));
+
+
+        // --- TOTAL SCORE ---
+        // Max total score for 5+5+5 = 15. Your frontend shows 0-16. Adjust max if needed.
+        const totalScore = contentScore + pronunciationScore + fluencyScore;
+
+
+        // Upload audio to Cloudinary
+        const audioUpload = await cloudinary.uploader.upload(req.file.path, { resource_type: "video" });
+
+        const attempt = await RespondSituationAttempt.create({
+            questionId,
+            userId,
+            studentAudio: { url: audioUpload.secure_url, public_id: audioUpload.public_id },
+            transcript,
+            score: parseFloat(totalScore.toFixed(1)),
+            content: parseFloat(contentScore.toFixed(1)),
+            pronunciation: parseFloat(pronunciationScore.toFixed(1)),
+            fluency: parseFloat(fluencyScore.toFixed(1)),
+            wordAnalysis
+        });
+
+        res.status(201).json({ success: true, data: attempt });
+
+    } catch (error) {
+        console.error("CREATE RESPOND SITUATION ATTEMPT ERROR:", error);
+        res.status(500).json({ success: false, message: error.message || "An internal server error occurred" });
+    }
+};
 
 export const saveAttempt = async (req, res) => {
   try {
