@@ -305,3 +305,24 @@ export const deleteQuestion = async (req, res) => {
 
 //   res.json(attempt);
 // };
+
+export const saveAttempt = async (req, res) => {
+  try {
+   
+    const response = await RepeatAttempt.create(req.body);
+
+
+    return res.status(201).json({
+      success: true,
+      message: "Attempt saved successfully",
+      data: response,
+    });
+  } catch (error) {
+    console.error("Error saving attempt:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to save attempt",
+      error: error.message,
+    });
+  }
+};

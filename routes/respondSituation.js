@@ -1,7 +1,7 @@
 import express from "express";
 import { upload } from "../middlewares/upload.js";
 import { authorize } from "../middlewares/authMiddleware.js";
-import { addRespondSituationQuestion, createRespondSituationAttempt, deleteRespondSituationQuestion, getCommunityRespondSituationAttemptsByQuestion, getRespondSituationQuestionsWithAttempts, updateRespondSituationQuestion } from "../controllers/respondSituationController.js";
+import { addRespondSituationQuestion, createRespondSituationAttempt, deleteRespondSituationQuestion, getCommunityRespondSituationAttemptsByQuestion, getRespondSituationQuestionsWithAttempts, saveAttempt, updateRespondSituationQuestion } from "../controllers/respondSituationController.js";
 const router = express.Router();
 
 // router.use(authorize());
@@ -14,7 +14,7 @@ import { checkPracticeLimit } from "../middlewares/practiceLimitMiddleware.js";
 
 //attempt routes
 router.post("/submit", upload.single("audio"), checkPracticeLimit, createRespondSituationAttempt);
-
+router.post("/save/attempt", saveAttempt)
 export default router;
 
 

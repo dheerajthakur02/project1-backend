@@ -1,6 +1,6 @@
 import express from "express";
 import { upload } from "../middlewares/upload.js";
-import { addRetellQuestion, createRetellAttempt, deleteRetell, getRetellLectureById, getRetellQuestionsWithAttempts, updateRetellQuestion, getAllQuestions, getCommunityAttemptsByQuestion } from "../controllers/retellController.js";
+import { addRetellQuestion, createRetellAttempt, deleteRetell, getRetellLectureById, getRetellQuestionsWithAttempts, updateRetellQuestion, getAllQuestions, getCommunityAttemptsByQuestion, saveAttempt } from "../controllers/retellController.js";
 import { authorize } from "../middlewares/authMiddleware.js";
 import { createRepeatAttempt } from "../controllers/attemptRepeat.controller.js";
 
@@ -19,7 +19,7 @@ import { checkPracticeLimit } from "../middlewares/practiceLimitMiddleware.js";
 
 //attempt routes
 router.post("/submit", upload.single("audio"), checkPracticeLimit, createRetellAttempt);
-
+router.post("/save/attempt", saveAttempt)
 export default router;
 
 

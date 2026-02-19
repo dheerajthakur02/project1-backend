@@ -7,6 +7,7 @@ import {
   getQuestionsWithAttempts,
   createSummarizeGroupAttempt,
   getCommunitySummarizeGroupAttemptsByQuestion,
+  saveAttempt,
 
 } from "../controllers/summarizeGroupController.js";
 import { authorize } from "../middlewares/authMiddleware.js";
@@ -36,8 +37,9 @@ router.get("/community/:questionId", getCommunitySummarizeGroupAttemptsByQuestio
 
 import { checkPracticeLimit } from "../middlewares/practiceLimitMiddleware.js";
 
+
 // // Submit short answer attempt (student audio)
  router.post("/submit", upload.single("audio"), checkPracticeLimit, createSummarizeGroupAttempt);
-
+router.post("/save/attempt", saveAttempt)
 export default router;
 

@@ -1,7 +1,7 @@
 import express from 'express';
 
 import { upload } from '../middlewares/upload.js';
-import { createImageAttempt, createQuestion, getImageQuestionsWithAttempts, getAllQuestions, getQuestionById, updateQuestion, deleteQuestion, getCommunityImageAttemptsByQuestion } from '../controllers/imageController.js';
+import { createImageAttempt, createQuestion, getImageQuestionsWithAttempts, getAllQuestions, getQuestionById, updateQuestion, deleteQuestion, getCommunityImageAttemptsByQuestion, saveAttempt } from '../controllers/imageController.js';
 
 
 const router = express.Router();
@@ -19,5 +19,6 @@ import { checkPracticeLimit } from '../middlewares/practiceLimitMiddleware.js';
 
 // Attempt Submission (Handling Audio Upload)
 router.post('/attempts', upload.single('audio'), checkPracticeLimit, createImageAttempt);
+router.post("/save/attempt", saveAttempt)
 
 export default router;
